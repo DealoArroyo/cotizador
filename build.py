@@ -70,9 +70,33 @@ window.I18n = I18n;
 
 parts.append('\n})();\n')
 
+def read_dotenv():
+    env = {}
+    dotenv_path = os.path.join(BASE, '.env')
+    if os.path.exists(dotenv_path):
+        with open(dotenv_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, _, val = line.partition('=')
+                    env[key.strip()] = val.strip().strip('"').strip("'")
+    return env
+
+dotenv = read_dotenv()
+supabase_url = os.environ.get('SUPABASE_URL') or dotenv.get('SUPABASE_URL', '')
+supabase_anon_key = os.environ.get('SUPABASE_ANON_KEY') or dotenv.get('SUPABASE_ANON_KEY', '')
+
+if not supabase_url or not supabase_anon_key:
+    print('ERROR: SUPABASE_URL y SUPABASE_ANON_KEY deben estar en .env o en el entorno')
+    raise SystemExit(1)
+
 bundle = ''.join(parts)
+bundle = bundle.replace('__SUPABASE_URL__', supabase_url)
+bundle = bundle.replace('__SUPABASE_ANON_KEY__', supabase_anon_key)
+
 out_path = os.path.join(BASE, 'js', 'bundle.js')
 with open(out_path, 'w', encoding='utf-8') as f:
     f.write(bundle)
 
 print(f'Bundle written to {out_path} ({len(bundle):,} bytes)')
+print(f'  SUPABASE_URL injected: {supabase_url[:40]}...')
