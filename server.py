@@ -99,7 +99,8 @@ def render_portal(q, company, settings):
     status = q.get('status', 'sent')
     already_acted = status in ('approved', 'rejected')
     token = q.get('publicToken', '')
-    header_color = settings.get('portalHeaderColor', '#6366f1')
+    _raw_color = settings.get('portalHeaderColor', '#6366f1')
+    header_color = _raw_color if HEX_COLOR_RE.match(_raw_color) else '#6366f1'
 
     company_name = esc(company.get('name', 'Empresa'))
     company_rfc  = esc(company.get('rfc', ''))
