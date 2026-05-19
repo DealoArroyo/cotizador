@@ -416,14 +416,37 @@ export function renderSettings(container) {
   container.querySelector('#restore-json')?.addEventListener('change', e => {
     const file = e.target.files[0];
     if (!file) return;
+    const MAX_BACKUP_SIZE = 2 * 1024 * 1024; // 2 MB
+    if (file.size > MAX_BACKUP_SIZE) {
+      showToast('Archivo demasiado grande (máx 2 MB).', 'error');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = ev => {
       try {
-        const backup = JSON.parse(ev.target.result);
-        if (!backup?.data) throw new Error('Formato inválido');
-        const KEYS = { company: 'cot_company', clients: 'cot_clients', products: 'cot_products', quotations: 'cot_quotations', invoices: 'cot_invoices', payments: 'cot_payments', templates: 'cot_templates', settings: 'cot_settings' };
+        const VALID_KEYS = { company: 'cot_company', clients: 'cot_clients', products: 'cot_products', quotations: 'cot_quotations', invoices: 'cot_invoices', payments: 'cot_payments', templates: 'cot_templates', settings: 'cot_settings' };
+        const VALID_KEY_SET = new Set(Object.keys(VALID_KEYS));
+
+        let backup;
+        try { backup = JSON.parse(ev.target.result); }
+        catch { showToast('Archivo inválido: no es JSON.', 'error'); return; }
+
+        if (!backup || typeof backup !== 'object' || !backup.data || typeof backup.data !== 'object') {
+          showToast('Formato de respaldo inválido.', 'error'); return;
+        }
+        const unknownKeys = Object.keys(backup.data).filter(k => !VALID_KEY_SET.has(k));
+        if (unknownKeys.length > 0) {
+          showToast(`Respaldo contiene claves no reconocidas: ${unknownKeys.join(', ')}`, 'error'); return;
+        }
+        for (const [k, v] of Object.entries(backup.data)) {
+          if (v !== null && typeof v !== 'object') {
+            showToast(`Campo "${k}" tiene formato incorrecto.`, 'error'); return;
+          }
+        }
+
         if (!confirm(`¿Restaurar respaldo del ${backup.exportedAt?.slice(0,10) || '?'}?\nEsto REEMPLAZARÁ todos los datos actuales.`)) return;
-        Object.entries(KEYS).forEach(([k, v]) => {
+
+        Object.entries(VALID_KEYS).forEach(([k, v]) => {
           if (backup.data[k] !== undefined && backup.data[k] !== null) {
             localStorage.setItem(v, JSON.stringify(backup.data[k]));
           }
