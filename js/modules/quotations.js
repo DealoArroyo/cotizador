@@ -6,8 +6,23 @@ import { renderKanban } from './kanban.js';
 
 let quotsFilter = '';
 let quotsSearch = '';
+let _quotPollTimer = null;
+
+async function _syncAndRefresh(container, params) {
+  if (!window._supSync) return;
+  const btn = container.querySelector('#sync-quot');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Actualizando...';
+    if (window.lucide) lucide.createIcons({ nodes: [btn] });
+  }
+  const { client, userId } = window._supSync;
+  await Store.syncFromSupabase(client, userId);
+  renderQuotations(container, params);
+}
 
 export function renderQuotations(container, params = {}) {
+  if (_quotPollTimer) { clearInterval(_quotPollTimer); _quotPollTimer = null; }
   const t = I18n.t.bind(I18n);
   if (params.action === 'new' || params.action === 'edit') return renderQuotationForm(container, params.id, params);
   if (params.action === 'view') return renderQuotationView(container, params.id);
@@ -68,6 +83,7 @@ export function renderQuotations(container, params = {}) {
             <i data-lucide="layout-dashboard"></i>
           </button>
         </div>
+        <button class="btn btn--ghost btn--sm" id="sync-quot" title="Sincronizar con la nube"><i data-lucide="refresh-cw"></i> Actualizar</button>
         <button class="btn btn--ghost btn--sm" id="export-quot"><i data-lucide="download"></i> ${t('btn_export')}</button>
         <button class="btn btn--primary" id="new-quot"><i data-lucide="file-plus"></i> ${t('quot_new')}</button>
       </div>
@@ -180,6 +196,19 @@ export function renderQuotations(container, params = {}) {
       }
     });
   });
+
+  container.querySelector('#sync-quot')?.addEventListener('click', () => _syncAndRefresh(container, params));
+
+  if (window._supSync) {
+    _quotPollTimer = setInterval(() => {
+      if (!document.body.contains(container)) {
+        clearInterval(_quotPollTimer);
+        _quotPollTimer = null;
+        return;
+      }
+      _syncAndRefresh(container, params);
+    }, 60000);
+  }
 }
 
 function duplicateQuotation(id, container, params) {
