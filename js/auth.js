@@ -30,7 +30,6 @@ const Auth = {
     let overlay = document.getElementById('auth-overlay');
     if (overlay) overlay.remove();
 
-    const cfg = SupabaseClient.getConfig();
     overlay = document.createElement('div');
     overlay.id = 'auth-overlay';
     overlay.className = 'auth-overlay';
@@ -80,28 +79,6 @@ const Auth = {
             <i data-lucide="user-plus"></i> Crear cuenta
           </button>
         </div>
-
-        <details class="auth-config-details" ${cfg.url ? '' : 'open'}>
-          <summary><i data-lucide="settings"></i> Configuración de Supabase</summary>
-          <div class="auth-config-body">
-            <p class="text-xs text-muted" style="margin-bottom:10px">
-              Ingresa las credenciales de tu proyecto Supabase.<br>
-              Las encuentras en <strong>Settings → API</strong> dentro de tu proyecto.
-            </p>
-            <div class="form-group">
-              <label class="form-label">Project URL</label>
-              <input class="form-control" id="auth-sb-url" type="url" placeholder="https://xxxx.supabase.co" value="${cfg.url}">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Anon / Public key</label>
-              <input class="form-control" id="auth-sb-key" type="password" placeholder="eyJ..." value="${cfg.anonKey}">
-            </div>
-            <button class="btn btn--secondary btn--sm auth-btn" id="auth-save-config">
-              <i data-lucide="save"></i> Guardar configuración
-            </button>
-            <div id="auth-config-msg" class="auth-error hidden" style="margin-top:8px"></div>
-          </div>
-        </details>
       </div>`;
 
     document.body.appendChild(overlay);
@@ -115,22 +92,6 @@ const Auth = {
         overlay.querySelectorAll('.auth-form').forEach(f => f.classList.add('hidden'));
         overlay.querySelector(`#auth-${tab.dataset.tab}`).classList.remove('hidden');
       });
-    });
-
-    // Save Supabase config
-    overlay.querySelector('#auth-save-config').addEventListener('click', () => {
-      const url = overlay.querySelector('#auth-sb-url').value.trim();
-      const key = overlay.querySelector('#auth-sb-key').value.trim();
-      const msgEl = overlay.querySelector('#auth-config-msg');
-      if (!url || !key) {
-        msgEl.textContent = 'Ingresa URL y anon key.';
-        msgEl.classList.remove('hidden');
-        return;
-      }
-      SupabaseClient.saveConfig(url, key);
-      msgEl.textContent = '✓ Configuración guardada. Ahora puedes iniciar sesión.';
-      msgEl.classList.remove('hidden');
-      msgEl.style.color = 'var(--success)';
     });
 
     // Login
