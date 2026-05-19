@@ -1,6 +1,6 @@
 import Store from '../store.js';
 import I18n from '../i18n.js';
-import { uid, showToast, confirmDialog, exportCSV, importCSV, debounce } from '../utils.js';
+import { uid, showToast, confirmDialog, exportCSV, importCSV, debounce, formatDate, formatCurrency } from '../utils.js';
 import { REGIMENES_FISCALES, USOS_CFDI, CURRENCIES } from '../catalogs.js';
 
 let clientsSearch = '';
@@ -203,9 +203,48 @@ function renderClientForm(container, id) {
           <button class="btn btn--primary" id="save-client"><i data-lucide="save"></i> ${t('btn_save')}</button>
         </div>
       </div>
+
+      ${id ? (() => {
+        const clientQuots = Store.getQuotations()
+          .filter(q => q.clientId === id)
+          .sort((a, b) => (b.date || '') > (a.date || '') ? 1 : -1)
+          .slice(0, 10);
+        if (!clientQuots.length) return '';
+        const getStatus = (s) => ({ draft:'Borrador', sent:'Enviada', approved:'Aprobada', invoiced:'Facturada', rejected:'Rechazada' })[s] || s;
+        return `
+          <div class="card mt-4">
+            <div class="card__header"><span class="card__title"><i data-lucide="file-text"></i> Cotizaciones anteriores</span></div>
+            <div class="card__body p-0">
+              <table class="table">
+                <thead><tr>
+                  <th>Folio</th><th>Fecha</th><th>Total</th><th>Estado</th><th class="text-center">Acción</th>
+                </tr></thead>
+                <tbody>
+                  ${clientQuots.map(q => `<tr>
+                    <td><span class="mono">${q.folio || ''}</span></td>
+                    <td>${formatDate(q.date)}</td>
+                    <td>${formatCurrency(q.total, q.currency)}</td>
+                    <td>${getStatus(q.status)}</td>
+                    <td class="text-center">
+                      <button class="btn btn--ghost btn--xs base-on-quot" data-id="${q.id}" title="Basar nueva cotización en esta">
+                        <i data-lucide="copy-plus"></i> Basar nueva en esta
+                      </button>
+                    </td>
+                  </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>`;
+      })() : ''}
     </div>`;
 
   if (window.lucide) lucide.createIcons({ nodes: [container] });
+
+  container.querySelectorAll('.base-on-quot').forEach(btn => {
+    btn.addEventListener('click', () => {
+      window.App?.navigate('quotations', { action: 'new', basedOn: btn.dataset.id });
+    });
+  });
 
   container.querySelector('#back-clients')?.addEventListener('click', () => window.App?.navigate('clients'));
   container.querySelector('#cancel-client')?.addEventListener('click', () => window.App?.navigate('clients'));

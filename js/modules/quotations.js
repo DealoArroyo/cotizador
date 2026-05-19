@@ -9,7 +9,7 @@ let quotsSearch = '';
 
 export function renderQuotations(container, params = {}) {
   const t = I18n.t.bind(I18n);
-  if (params.action === 'new' || params.action === 'edit') return renderQuotationForm(container, params.id);
+  if (params.action === 'new' || params.action === 'edit') return renderQuotationForm(container, params.id, params);
   if (params.action === 'view') return renderQuotationView(container, params.id);
 
   const clients = Store.getClients();
@@ -256,15 +256,20 @@ async function sendPublicLink(q, container, params) {
 }
 
 // ─── FORM ─────────────────────────────────────────────────────────────────────
-function renderQuotationForm(container, id) {
+function renderQuotationForm(container, id, params = {}) {
   const t = I18n.t.bind(I18n);
   const q = id ? Store.getQuotation(id) : null;
+  const baseQ = params.basedOn ? Store.getQuotation(params.basedOn) : null;
   const settings = Store.getSettings();
   const clients = Store.getClients();
   const products = Store.getProducts();
   const templates = Store.getTemplates();
 
-  let items = q?.items ? JSON.parse(JSON.stringify(q.items)) : [newItem(settings)];
+  let items = q?.items
+    ? JSON.parse(JSON.stringify(q.items))
+    : baseQ?.items
+      ? JSON.parse(JSON.stringify(baseQ.items))
+      : [newItem(settings)];
 
   const renderItems = () => {
     const totals = calcQuotationTotals(items);
@@ -330,8 +335,14 @@ function renderQuotationForm(container, id) {
                 <label class="form-label required">${t('quot_client')}</label>
                 <select class="form-control" id="q-client">
                   <option value="">Seleccionar cliente...</option>
-                  ${clients.map(c => `<option value="${c.id}" ${q?.clientId === c.id ? 'selected' : ''}>${c.name} – ${c.rfc}</option>`).join('')}
+                  ${clients.map(c => `<option value="${c.id}" ${c.id === (q?.clientId || baseQ?.clientId) ? 'selected' : ''}>${c.name} – ${c.rfc}</option>`).join('')}
                 </select>
+                <div id="client-products-panel" class="client-products-panel" style="display:none">
+                  <div class="client-products-panel__title">
+                    <i data-lucide="history"></i> Usados con este cliente
+                  </div>
+                  <div class="client-products-panel__items" id="client-products-list"></div>
+                </div>
               </div>
               <div class="form-group">
                 <label class="form-label">${t('quot_template')}</label>
@@ -392,6 +403,53 @@ function renderQuotationForm(container, id) {
   // Bind item events
   bindItemEvents(container, items, products, settings, t);
 
+  // ─── Client product suggestions ───────────────────────────────────────────
+  function updateClientSuggestions(clientId) {
+    const panel = container.querySelector('#client-products-panel');
+    const list  = container.querySelector('#client-products-list');
+    if (!panel || !list || !clientId) { if (panel) panel.style.display = 'none'; return; }
+
+    const clientQuots = Store.getQuotations().filter(cq => cq.clientId === clientId);
+    const used = {};
+    for (const cq of clientQuots) {
+      for (const item of (cq.items || [])) {
+        const key = item.productId || item.description;
+        if (!used[key] || new Date(cq.date) > new Date(used[key]._lastDate || 0)) {
+          used[key] = { ...item, _lastDate: cq.date };
+        }
+      }
+    }
+    const suggestions = Object.values(used).slice(0, 8);
+    if (!suggestions.length) { panel.style.display = 'none'; return; }
+
+    panel.style.display = 'block';
+    list.innerHTML = suggestions.map((item, i) =>
+      `<button class="client-product-chip" data-idx="${i}">
+         ${item.description || item.name || '—'} · ${formatCurrency(item.unitPrice || 0, item.currency || 'MXN')}
+       </button>`
+    ).join('');
+
+    list.querySelectorAll('.client-product-chip').forEach((btn, i) => {
+      btn.addEventListener('click', () => {
+        items.push({ ...newItem(settings), ...suggestions[i], id: uid() });
+        const body = container.querySelector('#items-body');
+        if (body) {
+          body.innerHTML = items.map((it, idx) => renderItemRow(it, idx, products)).join('');
+          bindItemEvents(container, items, products, settings, t);
+          if (window.lucide) lucide.createIcons({ nodes: [body] });
+        }
+      });
+    });
+  }
+
+  container.querySelector('#q-client')?.addEventListener('change', e => {
+    updateClientSuggestions(e.target.value);
+  });
+
+  // Trigger on load if client is pre-selected
+  updateClientSuggestions(container.querySelector('#q-client')?.value || '');
+  // ─────────────────────────────────────────────────────────────────────────
+
   // Live preview update
   const updatePreview = debounce(() => {
     const previewPanel = container.querySelector('#preview-panel');
@@ -411,8 +469,8 @@ function renderQuotationForm(container, id) {
     if (!panel.classList.contains('hidden')) renderPreviewContent(container, items, clients, settings);
   });
   container.querySelector('#print-preview')?.addEventListener('click', () => printQuotation(container, items, clients, settings));
-  container.querySelector('#save-draft')?.addEventListener('click', () => saveQuotation(container, items, q, 'draft'));
-  container.querySelector('#save-quot')?.addEventListener('click', () => saveQuotation(container, items, q, 'sent'));
+  container.querySelector('#save-draft')?.addEventListener('click', () => saveQuotation(container, items, q, 'draft', params));
+  container.querySelector('#save-quot')?.addEventListener('click', () => saveQuotation(container, items, q, 'sent', params));
   container.querySelector('#q-template')?.addEventListener('change', e => {
     const tmpl = Store.getTemplates().find(t => t.id === e.target.value);
     if (tmpl?.items) {
@@ -531,7 +589,7 @@ function bindItemEvents(container, items, products, settings, t) {
   });
 }
 
-function saveQuotation(container, items, existing, status) {
+function saveQuotation(container, items, existing, status, params = {}) {
   const t = I18n.t.bind(I18n);
   const clientId = container.querySelector('#q-client')?.value;
   if (!clientId) { showToast('Selecciona un cliente', 'error'); return; }
@@ -553,6 +611,7 @@ function saveQuotation(container, items, existing, status) {
     subtotal: totals.subtotal, discountTotal: totals.discountTotal, taxTotal: totals.taxTotal, total: totals.total,
     status, history, updatedAt: new Date().toISOString(),
     createdAt: existing?.createdAt || new Date().toISOString(),
+    basedOnId: params.basedOn || null,
   };
 
   Store.upsertQuotation(q);
