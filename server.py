@@ -422,6 +422,8 @@ class Handler(SimpleHTTPRequestHandler):
                     break
 
             sb_patch('user_data', {'user_id': f'eq.{user_id}'}, {'quotations': quotations})
+            token_prefix = token[:8]
+            print(f'[portal:action] {time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())} ip={self.client_address[0]} token={token_prefix}... action={action}', flush=True)
             self._json(200, {'ok': True})
         except Exception as e:
             print(f'[action error] {e}', flush=True)
@@ -444,14 +446,18 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def _send_security_headers(self):
+        self.send_header('X-Frame-Options', 'DENY')
+        self.send_header('X-Content-Type-Options', 'nosniff')
+        self.send_header('Referrer-Policy', 'no-referrer')
+        self.send_header('Strict-Transport-Security', 'max-age=31536000')
+
     def end_headers(self):
         self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
         self.send_header('Pragma', 'no-cache')
         self.send_header('Expires', '0')
+        self._send_security_headers()
         super().end_headers()
-
-    def log_message(self, fmt, *args):
-        pass  # suppress per-request logs
 
 
 port = int(sys.argv[1]) if len(sys.argv) > 1 else 3333
