@@ -278,6 +278,15 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         path = urllib.parse.urlparse(self.path).path
         if path.startswith('/q/') and len(path) > 3:
+            ip = self.client_address[0]
+            if not _check_rate_limit(ip):
+                self.send_response(429)
+                self.send_header('Content-Type', 'text/plain')
+                self.send_header('Content-Length', len(b'Too many requests'))
+                self.send_header('Retry-After', '60')
+                self.end_headers()
+                self.wfile.write(b'Too many requests')
+                return
             self._serve_portal(path[3:].strip('/'))
         else:
             super().do_GET()
@@ -286,6 +295,16 @@ class Handler(SimpleHTTPRequestHandler):
         path = urllib.parse.urlparse(self.path).path
         parts = path.split('/')           # ['', 'api', 'q', TOKEN, ENDPOINT]
         if path.startswith('/api/q/') and len(parts) == 5:
+            ip = self.client_address[0]
+            if not _check_rate_limit(ip):
+                data = json.dumps({'error': 'Too many requests'}).encode()
+                self.send_response(429)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Content-Length', len(data))
+                self.send_header('Retry-After', '60')
+                self.end_headers()
+                self.wfile.write(data)
+                return
             token    = parts[3]
             endpoint = parts[4]
             length   = int(self.headers.get('Content-Length', 0))
