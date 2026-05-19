@@ -282,10 +282,13 @@ export function renderSettings(container) {
   // Save reminders settings
   container.querySelector('#save-reminders')?.addEventListener('click', () => {
     const s = Store.getSettings();
+    const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+    const rawColor = container.querySelector('#s-portal-color')?.value || '#6366f1';
+    const safeColor = HEX_RE.test(rawColor) ? rawColor : '#6366f1';
     Store.saveSettings({
       ...s,
       approvalMode: container.querySelector('#s-approval-mode')?.value || 'click',
-      portalHeaderColor: container.querySelector('#s-portal-color')?.value || '#6366f1',
+      portalHeaderColor: safeColor,
       reminders: {
         noOpen:   { enabled: container.querySelector('#rem-noopen-enabled')?.checked ?? true,   days: parseInt(container.querySelector('#rem-noopen-days')?.value)   || 3 },
         noReply:  { enabled: container.querySelector('#rem-noreply-enabled')?.checked ?? true,  days: parseInt(container.querySelector('#rem-noreply-days')?.value)  || 2 },
@@ -313,11 +316,21 @@ export function renderSettings(container) {
     const file = e.target.files[0];
     if (!file) return;
     if (file.size > 1048576) { showToast('El archivo es demasiado grande (máx 1 MB)', 'error'); return; }
+    if (!['image/png', 'image/jpeg', 'image/gif', 'image/webp'].includes(file.type)) {
+      showToast('Formato no permitido. Usa PNG, JPG, GIF o WebP.', 'error');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (ev) => {
+      const result = ev.target.result;
+      const SAFE_IMG_RE = /^data:image\/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/=]+$/;
+      if (!SAFE_IMG_RE.test(result)) {
+        showToast('El archivo no es una imagen válida.', 'error');
+        return;
+      }
       const preview = container.querySelector('#logo-preview');
-      if (preview.tagName === 'IMG') { preview.src = ev.target.result; }
-      else { preview.outerHTML = `<img src="${ev.target.result}" id="logo-preview" class="logo-preview">`; }
+      if (preview.tagName === 'IMG') { preview.src = result; }
+      else { preview.outerHTML = `<img src="${result}" id="logo-preview" class="logo-preview">`; }
     };
     reader.readAsDataURL(file);
   });
