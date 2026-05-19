@@ -58,7 +58,8 @@ create table if not exists public.quote_tokens (
   token      text primary key,
   user_id    uuid references auth.users(id) on delete cascade not null,
   quote_id   text not null,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  unique (user_id, quote_id)
 );
 
 alter table public.quote_tokens enable row level security;
@@ -71,4 +72,5 @@ create policy "Equipo inserta tokens propios"
 -- Actualiza un token existente (re-envío de la misma cotización)
 create policy "Equipo actualiza tokens propios"
   on public.quote_tokens for update
-  using (auth.uid() = user_id);
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
