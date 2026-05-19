@@ -787,10 +787,10 @@ function buildDocumentPreview(q, client, company, settings) {
         <div class="doc-company">
           ${company.logo ? `<img src="${company.logo}" class="doc-logo">` : `<div class="doc-logo-placeholder">${(company.name || 'E')[0]}</div>`}
           <div class="doc-company-info">
-            <h2>${escapeHTML(company.name) || 'Mi Empresa'}</h2>
+            <h2>${escapeHTML(company.name || 'Mi Empresa')}</h2>
             <p>RFC: ${escapeHTML(company.rfc || '—')}</p>
-            <p>${escapeHTML(company.domicilioFiscal) || ''}</p>
-            <p>${escapeHTML(company.email) || ''} ${company.telefono ? '· ' + escapeHTML(company.telefono) : ''}</p>
+            <p>${escapeHTML(company.domicilioFiscal || '')}</p>
+            <p>${escapeHTML(company.email || '')} ${company.telefono ? '· ' + escapeHTML(company.telefono) : ''}</p>
           </div>
         </div>
         <div class="doc-meta">
@@ -808,8 +808,8 @@ function buildDocumentPreview(q, client, company, settings) {
         <div class="doc-section-label">CLIENTE</div>
         <h3>${escapeHTML(client?.name || '—')}</h3>
         <p>RFC: ${escapeHTML(client?.rfc || '—')}</p>
-        <p>${escapeHTML(client?.address) || ''}</p>
-        <p>${escapeHTML(client?.email) || ''}</p>
+        <p>${escapeHTML(client?.address || '')}</p>
+        <p>${escapeHTML(client?.email || '')}</p>
       </div>
 
       <table class="doc-items">
@@ -824,7 +824,7 @@ function buildDocumentPreview(q, client, company, settings) {
             const total = base - disc + taxAmt;
             return `<tr>
               <td>${i + 1}</td>
-              <td>${escapeHTML(item.description) || ''}</td>
+              <td>${escapeHTML(item.description || '')}</td>
               <td class="text-right">${item.qty}</td>
               <td class="text-right">$${(item.unitPrice || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
               <td class="text-right">${item.discount || 0}%</td>
