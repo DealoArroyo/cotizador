@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "cotizapro",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "python3 build.py && python3 server.py 3333"],
+      "port": 3333,
+      "autoPort": false
+    }
+  ]
+}

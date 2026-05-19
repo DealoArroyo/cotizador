@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CotizaPro — Sistema de Cotizaciones y Facturación</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <!-- Charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <!-- EmailJS -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+  <!-- html2pdf (client-side PDF generation) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css">
+
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%236366f1'/><path d='M8 10h16M8 16h12M8 22h10' stroke='white' stroke-width='2.5' stroke-linecap='round'/></svg>">
+</head>
+<body>
+
+<div id="app">
+  <!-- Sidebar rendered by JS -->
+
+  <div id="layout">
+    <div class="main-area">
+      <!-- Mobile topbar -->
+      <div class="topbar" id="topbar">
+        <button class="mobile-menu-btn" id="mobile-menu-btn">
+          <i data-lucide="menu"></i>
+        </button>
+        <span class="topbar-title">CotizaPro</span>
+      </div>
+
+      <!-- Main content -->
+      <main id="main-content"></main>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- Datalists for SAT catalogs -->
+<datalist id="cps-list-inv">
+  <option value="81111501">Servicios de programación</option>
+  <option value="81111502">Análisis de sistemas</option>
+  <option value="81111503">Diseño de sistemas</option>
+  <option value="81111605">Consultoría TI</option>
+  <option value="81111810">Soporte técnico</option>
+  <option value="81162200">SaaS</option>
+  <option value="73160000">Diseño gráfico</option>
+  <option value="80141600">Consultoría empresarial</option>
+  <option value="43231500">Software empresarial</option>
+  <option value="84121800">Servicios contables</option>
+</datalist>
+<datalist id="cu-list-inv">
+  <option value="E48">Unidad de servicio</option>
+  <option value="H87">Pieza</option>
+  <option value="MO">Mes</option>
+  <option value="AN">Año</option>
+  <option value="DIA">Día</option>
+  <option value="HUR">Hora</option>
+  <option value="LIC">Licencia</option>
+  <option value="PRY">Proyecto</option>
+</datalist>
+
+<script src="js/bundle.js"></script>
+
+<script>
+  // Re-run Lucide on mutations for dynamic icon rendering
+  const iconObserver = new MutationObserver(() => {
+    if (window.lucide) {
+      const newIcons = document.querySelectorAll('i[data-lucide]:not([data-rendered])');
+      if (newIcons.length) {
+        newIcons.forEach(el => el.setAttribute('data-rendered', '1'));
+        lucide.createIcons({ nodes: [...newIcons].map(el => el.parentElement).filter(Boolean) });
+      }
+    }
+  });
+  iconObserver.observe(document.body, { childList: true, subtree: true });
+
+  // Mobile overlay
+  document.addEventListener('click', e => {
+    const sidebar = document.getElementById('sidebar');
+    const btn = document.getElementById('mobile-menu-btn');
+    if (sidebar?.classList.contains('sidebar--open') && !sidebar.contains(e.target) && e.target !== btn && !btn?.contains(e.target)) {
+      sidebar.classList.remove('sidebar--open');
+    }
+  });
+</script>
+</body>
+</html>
