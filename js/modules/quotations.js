@@ -1,6 +1,6 @@
 import Store from '../store.js';
 import I18n from '../i18n.js';
-import { uid, today, addDays, formatDate, calcQuotationTotals, showToast, confirmDialog, exportCSV, debounce, formatCurrency } from '../utils.js';
+import { uid, today, addDays, formatDate, calcQuotationTotals, showToast, confirmDialog, exportCSV, debounce, formatCurrency, generatePublicToken } from '../utils.js';
 import { CURRENCIES } from '../catalogs.js';
 
 let quotsFilter = '';
@@ -128,6 +128,70 @@ function duplicateQuotation(id, container, params) {
   Store.upsertQuotation(newQ);
   showToast('Cotización duplicada');
   window.App?.navigate('quotations', { action: 'edit', id: newQ.id });
+}
+
+async function sendPublicLink(q, container, params) {
+  if (!window._supSync) {
+    showToast('Requiere sesión de Supabase para generar el link.', 'error');
+    return;
+  }
+  const { client, userId } = window._supSync;
+  const settings = Store.getSettings();
+  const token = q.publicToken || generatePublicToken();
+  const approvalMode = settings.approvalMode || 'click';
+
+  // Insert / upsert token in Supabase
+  const { error } = await client.from('quote_tokens').upsert(
+    { token, user_id: userId, quote_id: q.id },
+    { onConflict: 'token' }
+  );
+  if (error) {
+    showToast('Error al generar el link: ' + error.message, 'error');
+    return;
+  }
+
+  // Update quotation
+  const updated = {
+    ...q,
+    publicToken: token,
+    approvalMode,
+    status: q.status === 'draft' ? 'sent' : q.status,
+    sentAt: q.sentAt || new Date().toISOString(),
+  };
+  Store.upsertQuotation(updated);
+
+  const link = `${window.location.origin}/q/${token}`;
+
+  // Show modal
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay modal-overlay--active';
+  overlay.innerHTML = `
+    <div class="modal modal--sm">
+      <div class="modal__header">
+        <span class="modal__title">Link de aprobación</span>
+        <button class="modal__close" id="close-link-modal"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal__body">
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">
+          Comparte este link con tu cliente. Podrá ver la cotización y aprobarla con un click.
+        </p>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="form-control" id="link-input" value="${link}" readonly style="font-size:12px;font-family:monospace">
+          <button class="btn btn--primary btn--sm" id="copy-link"><i data-lucide="copy"></i> Copiar</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  if (window.lucide) lucide.createIcons({ nodes: [overlay] });
+
+  overlay.querySelector('#close-link-modal').onclick = () => overlay.remove();
+  overlay.querySelector('#copy-link').onclick = () => {
+    navigator.clipboard.writeText(link).then(() => showToast('Link copiado'));
+  };
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+  // Re-render page to reflect status change
+  renderQuotations(container, params);
 }
 
 // ─── FORM ─────────────────────────────────────────────────────────────────────
@@ -454,6 +518,15 @@ function renderQuotationView(container, id) {
         <button class="btn btn--ghost btn--sm" id="btn-whatsapp" title="Compartir por WhatsApp"><i data-lucide="message-circle"></i> WhatsApp</button>
         <button class="btn btn--ghost btn--sm" id="btn-email" title="Enviar por correo"><i data-lucide="mail"></i> Correo</button>
         <button class="btn btn--ghost btn--sm" id="print-quot"><i data-lucide="printer"></i> ${t('btn_print')}</button>
+        ${q.status === 'draft' || q.status === 'sent' ? `
+          <button class="btn btn--primary" id="send-link-btn">
+            <i data-lucide="link"></i> Enviar link
+          </button>` : ''}
+        ${q.publicToken ? `
+          <div class="link-badge">
+            <i data-lucide="link-2"></i>
+            ${q.viewedAt ? '👁 Vista' : 'Enviada'}
+          </div>` : ''}
       </div>
     </div>
 
@@ -502,6 +575,9 @@ function renderQuotationView(container, id) {
   container.querySelector('#print-quot')?.addEventListener('click', () => printDocumentFromHtml(buildDocumentPreview(q, client, company, settings), q.folio));
   container.querySelector('#btn-whatsapp')?.addEventListener('click', () => sendWhatsApp(q, client, company, settings));
   container.querySelector('#btn-email')?.addEventListener('click', () => sendEmail(q, client, company, settings));
+  container.querySelector('#send-link-btn')?.addEventListener('click', () => {
+    sendPublicLink(q, container, {});
+  });
 
   container.querySelectorAll('[data-action]').forEach(btn => {
     btn.addEventListener('click', () => {
