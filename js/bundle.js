@@ -2026,8 +2026,29 @@ function renderProductForm(container, id) {
 
 let quotsFilter = '';
 let quotsSearch = '';
+let _quotPollTimer = null;
+let _syncInProgress = false;
+
+async function _syncAndRefresh(container, params) {
+  if (!window._supSync || _syncInProgress) return;
+  _syncInProgress = true;
+  const btn = container.querySelector('#sync-quot');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Actualizando...';
+    if (window.lucide) lucide.createIcons({ nodes: [btn] });
+  }
+  try {
+    const { client, userId } = window._supSync;
+    await Store.syncFromSupabase(client, userId);
+    renderQuotations(container, params);
+  } finally {
+    _syncInProgress = false;
+  }
+}
 
 function renderQuotations(container, params = {}) {
+  if (_quotPollTimer) { clearInterval(_quotPollTimer); _quotPollTimer = null; }
   const t = I18n.t.bind(I18n);
   if (params.action === 'new' || params.action === 'edit') return renderQuotationForm(container, params.id, params);
   if (params.action === 'view') return renderQuotationView(container, params.id);
@@ -2088,6 +2109,7 @@ function renderQuotations(container, params = {}) {
             <i data-lucide="layout-dashboard"></i>
           </button>
         </div>
+        <button class="btn btn--ghost btn--sm" id="sync-quot" title="Sincronizar con la nube"><i data-lucide="refresh-cw"></i> Actualizar</button>
         <button class="btn btn--ghost btn--sm" id="export-quot"><i data-lucide="download"></i> ${t('btn_export')}</button>
         <button class="btn btn--primary" id="new-quot"><i data-lucide="file-plus"></i> ${t('quot_new')}</button>
       </div>
@@ -2200,6 +2222,19 @@ function renderQuotations(container, params = {}) {
       }
     });
   });
+
+  container.querySelector('#sync-quot')?.addEventListener('click', () => _syncAndRefresh(container, params));
+
+  if (window._supSync) {
+    _quotPollTimer = setInterval(() => {
+      if (!document.body.contains(container)) {
+        clearInterval(_quotPollTimer);
+        _quotPollTimer = null;
+        return;
+      }
+      _syncAndRefresh(container, params);
+    }, 60000);
+  }
 }
 
 function duplicateQuotation(id, container, params) {
@@ -2657,7 +2692,6 @@ function renderQuotationView(container, id) {
       <div class="page-actions">
         ${actions.map(a => `<button class="btn btn--${a.style}" data-action="${a.action}"><i data-lucide="${a.icon}"></i> ${a.label}</button>`).join('')}
         <button class="btn btn--ghost btn--sm" id="btn-whatsapp" title="Compartir por WhatsApp"><i data-lucide="message-circle"></i> WhatsApp</button>
-        <button class="btn btn--ghost btn--sm" id="btn-email" title="Enviar por correo"><i data-lucide="mail"></i> Correo</button>
         <button class="btn btn--ghost btn--sm" id="print-quot"><i data-lucide="printer"></i> ${t('btn_print')}</button>
         ${q.status === 'draft' || q.status === 'sent' ? `
           <button class="btn btn--primary" id="send-link-btn">
@@ -2715,7 +2749,6 @@ function renderQuotationView(container, id) {
   container.querySelector('#back-quot')?.addEventListener('click', () => window.App?.navigate('quotations'));
   container.querySelector('#print-quot')?.addEventListener('click', () => printDocumentFromHtml(buildDocumentPreview(q, client, company, settings), q.folio));
   container.querySelector('#btn-whatsapp')?.addEventListener('click', () => sendWhatsApp(q, client, company, settings));
-  container.querySelector('#btn-email')?.addEventListener('click', () => sendEmail(q, client, company, settings));
   container.querySelector('#send-link-btn')?.addEventListener('click', () => {
     sendPublicLink(q, container, {});
   });
@@ -3037,75 +3070,6 @@ async function sendWhatsApp(q, client, company, settings) {
       console.error('WhatsApp PDF error:', err);
       showToast('Error al generar PDF: ' + err.message, 'error');
     }
-  } finally {
-    _resetBtn(btn);
-  }
-}
-
-// ─── EMAIL (EmailJS) ───────────────────────────────────────────────────────────
-async function sendEmail(q, client, company, settings) {
-  if (!client?.email) {
-    showToast('Este cliente no tiene correo registrado. Agrégalo en Clientes.', 'error');
-    return;
-  }
-  const ejsCfg = {
-    publicKey: localStorage.getItem('cot_emailjs_public_key') || '',
-    serviceId:  localStorage.getItem('cot_emailjs_service_id') || '',
-    templateId: localStorage.getItem('cot_emailjs_template_id') || '',
-  };
-  if (!ejsCfg.publicKey || !ejsCfg.serviceId || !ejsCfg.templateId) {
-    showToast('Configura EmailJS en Configuración → Envío de correos.', 'error');
-    window.App?.navigate('settings');
-    return;
-  }
-  if (!window.emailjs) { showToast('EmailJS no está cargado.', 'error'); return; }
-
-  const btn = document.getElementById('btn-email');
-  _setBtnLoading(btn, 'Generando PDF...');
-  try {
-    // 1. Generate PDF
-    const blob = await _generatePDFBlob(q, client, company, settings);
-    const filename = `Cotizacion_${q.folio}.pdf`;
-
-
-    const conceptos = (q.items || []).map(item => {
-      const base = (item.qty || 0) * (item.unitPrice || 0);
-      const disc = base * ((item.discount || 0) / 100);
-      const total = (base - disc) * (1 + (item.taxRate || 0) / 100);
-      return `${item.description || 'Concepto'} (x${item.qty}) — $${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
-    }).join('\n');
-
-    _setBtnLoading(btn, 'Enviando correo...');
-    if (window.lucide) lucide.createIcons({ nodes: [btn] });
-
-    emailjs.init({ publicKey: ejsCfg.publicKey });
-    await emailjs.send(ejsCfg.serviceId, ejsCfg.templateId, {
-      to_email:       client.email,
-      to_name:        client.name || '',
-      from_name:      company.name || 'CotizaPro',
-      reply_to:       company.email || '',
-      folio:          q.folio,
-      fecha:          formatDate(q.date),
-      valida_hasta:   formatDate(q.validUntil),
-      total:          formatCurrency(q.total, q.currency),
-      moneda:         q.currency,
-      conceptos,
-      notas:          q.notes || '',
-      terminos:       q.terms || '',
-      empresa_nombre: company.name || '',
-      empresa_rfc:    company.rfc || '',
-      empresa_email:  company.email || '',
-      empresa_tel:    company.telefono || '',
-    });
-
-    // Download PDF locally — user can forward the email with the PDF attached
-    _downloadBlob(blob, filename);
-    _markSentHistory(q, `Correo enviado a ${client.email}`);
-    showToast(`Correo enviado a ${client.email} ✓ · PDF descargado para adjuntar`);
-
-  } catch (err) {
-    console.error('Email PDF error:', err);
-    showToast('Error: ' + (err?.text || err?.message || 'revisa la configuración de EmailJS'), 'error');
   } finally {
     _resetBtn(btn);
   }
@@ -4348,15 +4312,6 @@ function renderSettings(container) {
   const company = Store.getCompany();
   const settings = Store.getSettings();
 
-  // EmailJS config — compute before template literal
-  const _ejsKey = localStorage.getItem('cot_emailjs_public_key') || '';
-  const _ejsSvc = localStorage.getItem('cot_emailjs_service_id') || '';
-  const _ejsTpl = localStorage.getItem('cot_emailjs_template_id') || '';
-  const _ejsConfigured = !!((_ejsKey && _ejsSvc && _ejsTpl));
-  const _ejsBadge = _ejsConfigured
-    ? `<div class="alert alert--success" style="margin-bottom:16px"><i data-lucide="check-circle-2"></i> <span>EmailJS configurado — envío de correos activo.</span></div>`
-    : `<div class="alert alert--info" style="margin-bottom:16px"><i data-lucide="info"></i> <span>Configura EmailJS para enviar cotizaciones por correo. Gratis hasta 200 correos/mes en <strong>emailjs.com</strong></span></div>`;
-
   container.innerHTML = `
     <div class="page-header">
       <h1 class="page-title">${t('set_title')}</h1>
@@ -4530,39 +4485,6 @@ function renderSettings(container) {
             </label>
           </div>
           <div id="backup-info" class="text-xs text-muted mt-1" style="margin-top:10px"></div>
-        </div>
-      </div>
-
-      <!-- EmailJS -->
-      <div class="card" id="emailjs-card">
-        <div class="card__header"><span class="card__title"><i data-lucide="mail"></i> Envío de correos (EmailJS)</span></div>
-        <div class="card__body">
-          ${_ejsBadge}
-          <div class="form-row form-row--3">
-            <div class="form-group">
-              <label class="form-label">Public Key</label>
-              <input class="form-control" id="ejs-key" placeholder="user_xxxx..." value="${_ejsKey}">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Service ID</label>
-              <input class="form-control" id="ejs-svc" placeholder="service_xxxx" value="${_ejsSvc}">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Template ID</label>
-              <input class="form-control" id="ejs-tpl" placeholder="template_xxxx" value="${_ejsTpl}">
-            </div>
-          </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-            <button class="btn btn--secondary btn--sm" id="ejs-save"><i data-lucide="save"></i> Guardar configuración</button>
-            <a href="https://www.emailjs.com" target="_blank" class="btn btn--ghost btn--sm"><i data-lucide="external-link"></i> Crear cuenta gratis</a>
-          </div>
-          <details style="margin-top:16px">
-            <summary style="font-size:12px;color:var(--text-2);cursor:pointer;padding:4px 0">📋 Plantilla HTML para pegar en EmailJS</summary>
-            <div style="margin-top:10px">
-              <p class="text-xs text-muted" style="margin-bottom:8px">En EmailJS → Email Templates → Create New → pega este HTML en el body y configura "To Email" como <code style="background:var(--bg-3);padding:2px 4px;border-radius:4px">{{to_email}}</code></p>
-              <textarea class="form-control" style="font-size:11px;font-family:monospace;height:160px" readonly id="ejs-template-html"></textarea>
-            </div>
-          </details>
         </div>
       </div>
 
@@ -4823,52 +4745,6 @@ function renderSettings(container) {
       showToast('Datos eliminados. Recargando...');
       setTimeout(() => location.reload(), 1500);
     }
-  });
-
-  // EmailJS template preview
-  const ejsTplArea = container.querySelector('#ejs-template-html');
-  if (ejsTplArea) {
-    ejsTplArea.value = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
-<body style="font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:20px">
-<div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1)">
-  <div style="background:#6366f1;padding:24px 32px;color:#fff">
-    <h1 style="margin:0;font-size:22px">{{empresa_nombre}}</h1>
-    <p style="margin:4px 0 0;opacity:.8;font-size:13px">RFC: {{empresa_rfc}}</p>
-  </div>
-  <div style="padding:32px">
-    <p style="color:#333;margin-top:0">Hola <strong>{{to_name}}</strong>,</p>
-    <p style="color:#555">Compartimos la cotización <strong>{{folio}}</strong>:</p>
-    <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:13px">
-      <tr style="background:#f8f8f8"><td style="padding:8px 12px;color:#888">Folio</td><td style="padding:8px 12px;font-weight:600">{{folio}}</td></tr>
-      <tr><td style="padding:8px 12px;color:#888">Fecha</td><td style="padding:8px 12px">{{fecha}}</td></tr>
-      <tr style="background:#f8f8f8"><td style="padding:8px 12px;color:#888">Válida hasta</td><td style="padding:8px 12px">{{valida_hasta}}</td></tr>
-    </table>
-    <div style="background:#f8faff;border:1px solid #e0e7ff;border-radius:6px;padding:16px;margin:16px 0">
-      <p style="margin:0 0 8px;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px">Conceptos</p>
-      <pre style="margin:0;font-size:13px;font-family:Arial,sans-serif;white-space:pre-wrap">{{conceptos}}</pre>
-    </div>
-    <div style="text-align:right;border-top:2px solid #6366f1;padding-top:12px">
-      <span style="font-size:20px;font-weight:700;color:#6366f1">TOTAL: {{total}}</span>
-    </div>
-    <p style="color:#555;margin-top:24px">Para cualquier duda, estamos a tus órdenes.</p>
-    <p style="margin:2px 0;font-weight:600">{{empresa_nombre}}</p>
-    <p style="margin:2px 0;color:#888;font-size:13px">{{empresa_email}}</p>
-    <p style="margin:2px 0;color:#888;font-size:13px">{{empresa_tel}}</p>
-  </div>
-  <div style="background:#f8f8f8;padding:12px 32px;text-align:center;font-size:11px;color:#aaa">Generado con CotizaPro</div>
-</div></body></html>`;
-  }
-
-  // EmailJS save
-  container.querySelector('#ejs-save')?.addEventListener('click', () => {
-    const key = container.querySelector('#ejs-key')?.value.trim();
-    const svc = container.querySelector('#ejs-svc')?.value.trim();
-    const tpl = container.querySelector('#ejs-tpl')?.value.trim();
-    if (!key || !svc || !tpl) { showToast('Ingresa los 3 valores de EmailJS', 'error'); return; }
-    localStorage.setItem('cot_emailjs_public_key', key);
-    localStorage.setItem('cot_emailjs_service_id', svc);
-    localStorage.setItem('cot_emailjs_template_id', tpl);
-    showToast('Configuración de EmailJS guardada ✓');
   });
 
 }
