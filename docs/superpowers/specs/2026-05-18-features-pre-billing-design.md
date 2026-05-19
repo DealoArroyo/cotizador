@@ -69,9 +69,28 @@ El modo activo de la empresa se lee en el momento en que el cliente carga la pá
 - No requiere CDN adicional; el portal es una ruta servida por el mismo servidor
 
 ### Implementación técnica
-- Nueva ruta: `/q/:token` manejada en `server.py`
-- El servidor busca en Supabase la cotización con ese `publicToken` y renderiza la página con los datos embebidos en el HTML (no JS fetch del cliente para evitar exponer credenciales de Supabase)
-- Alternativamente: endpoint API `/api/q/:token` que retorna JSON público (sin auth), y el portal es HTML estático que fetchea ese endpoint
+
+**Tabla auxiliar en Supabase** (necesaria porque la arquitectura actual guarda todo como JSONB por `user_id`, y el endpoint público no puede saber a qué usuario pertenece un token sin una tabla indexada):
+
+```sql
+create table public.quote_tokens (
+  token      text primary key,
+  user_id    uuid references auth.users(id) on delete cascade,
+  quote_id   text not null,
+  created_at timestamptz default now()
+);
+-- Sin RLS: la inserción la hace el backend con service role key
+-- La lectura pública solo necesita el token
+```
+
+Al generar el link (`Enviar link`), el cliente Supabase de la app inserta una fila en `quote_tokens`. La tabla no contiene datos sensibles: solo el mapping token → user_id + quote_id.
+
+**Ruta pública:** `/q/:token` manejada en `server.py`
+1. `server.py` recibe el request con el token
+2. Hace query a `quote_tokens` con service role key para obtener `user_id` + `quote_id`
+3. Hace query a `user_data` para obtener los datos de la cotización y la empresa
+4. Renderiza el HTML del portal con los datos embebidos (sin exponer credenciales al cliente)
+5. Al cargar la página, hace un PATCH a `/api/q/:token/viewed` (endpoint en `server.py`) que actualiza `viewedAt` y `viewCount` en Supabase con service role key
 
 ---
 
@@ -113,10 +132,12 @@ En orden de izquierda a derecha:
 | Columna | Estado(s) de cotización | Color de encabezado |
 |---|---|---|
 | Borrador | `draft` | Gris |
-| Enviada | `sent` | Índigo |
+| Enviada | `sent`, `changes_requested` | Índigo |
 | Aprobada | `approved` | Verde |
 | Facturada | `invoiced` | Azul |
 | Rechazada | `rejected` | Rojo |
+
+`changes_requested` vive en la columna "Enviada" porque la cotización vuelve al equipo para revisión; la tarjeta muestra el badge "✎ Cambios solicitados" para distinguirla de las enviadas sin respuesta.
 
 La columna "Rechazada" se colapsa por default (solo el encabezado visible con el conteo); se expande al hacer click.
 
@@ -251,6 +272,27 @@ El campo `basedOnId: string | null` en el objeto cotización apunta al ID de la 
   quotationsView: 'table' | 'kanban',                  // default 'kanban'
 }
 ```
+
+---
+
+## Schema de Supabase — Cambios adicionales
+
+```sql
+-- Tabla de tokens públicos para el portal del cliente
+create table public.quote_tokens (
+  token      text primary key,
+  user_id    uuid references auth.users(id) on delete cascade,
+  quote_id   text not null,
+  created_at timestamptz default now()
+);
+-- No tiene RLS: el server.py la lee con service role key (nunca desde el browser)
+-- La inserción la hace el browser autenticado del equipo al enviar la cotización
+create policy "Solo el dueño puede insertar tokens"
+  on public.quote_tokens for insert
+  with check (auth.uid() = user_id);
+```
+
+La tabla `user_data` existente no cambia de estructura — los nuevos campos de cotización y settings se añaden en el JSONB automáticamente.
 
 ---
 
