@@ -2031,6 +2031,7 @@ function renderProductForm(container, id) {
 // import I18n from '../i18n.js';
 // import { uid, today, addDays, formatDate, calcQuotationTotals, showToast, confirmDialog, exportCSV, debounce, formatCurrency, generatePublicToken } from '../utils.js';
 // import { CURRENCIES } from '../catalogs.js';
+// import { renderKanban } from './kanban.js';
 
 let quotsFilter = '';
 let quotsSearch = '';
@@ -2050,11 +2051,20 @@ function renderQuotations(container, params = {}) {
   }).sort((a, b) => (b.date || '') > (a.date || '') ? 1 : -1);
 
   const statuses = ['draft', 'sent', 'approved', 'rejected', 'invoiced'];
+  const viewMode = Store.getSettings().quotationsView || 'kanban';
 
   container.innerHTML = `
     <div class="page-header">
       <h1 class="page-title">${t('quot_title')}</h1>
       <div class="page-actions">
+        <div class="view-toggle">
+          <button class="view-toggle__btn ${viewMode === 'table' ? 'view-toggle__btn--active' : ''}" data-view="table" title="Vista tabla">
+            <i data-lucide="list"></i>
+          </button>
+          <button class="view-toggle__btn ${viewMode === 'kanban' ? 'view-toggle__btn--active' : ''}" data-view="kanban" title="Vista Kanban">
+            <i data-lucide="layout-dashboard"></i>
+          </button>
+        </div>
         <button class="btn btn--ghost btn--sm" id="export-quot"><i data-lucide="download"></i> ${t('btn_export')}</button>
         <button class="btn btn--primary" id="new-quot"><i data-lucide="file-plus"></i> ${t('quot_new')}</button>
       </div>
@@ -2071,7 +2081,9 @@ function renderQuotations(container, params = {}) {
       </div>
     </div>
 
-    <div class="card p-0">
+    ${viewMode === 'kanban'
+      ? '<div id="kanban-container"></div>'
+      : `<div class="card p-0">
       ${quotations.length ? `
       <table class="table">
         <thead><tr>
@@ -2113,9 +2125,22 @@ function renderQuotations(container, params = {}) {
         <p>Crea tu primera cotización</p>
         <button class="btn btn--primary" id="new-quot-empty"><i data-lucide="file-plus"></i> ${t('quot_new')}</button>
       </div>`}
-    </div>`;
+    </div>`}`;
 
   if (window.lucide) lucide.createIcons({ nodes: [container] });
+
+  if (viewMode === 'kanban') {
+    const kc = container.querySelector('#kanban-container');
+    if (kc) renderKanban(kc);
+  }
+
+  container.querySelectorAll('.view-toggle__btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const s = Store.getSettings();
+      Store.saveSettings({ ...s, quotationsView: btn.dataset.view });
+      renderQuotations(container, params);
+    });
+  });
 
   container.querySelector('#new-quot')?.addEventListener('click', () => window.App?.navigate('quotations', { action: 'new' }));
   container.querySelector('#new-quot-empty')?.addEventListener('click', () => window.App?.navigate('quotations', { action: 'new' }));
