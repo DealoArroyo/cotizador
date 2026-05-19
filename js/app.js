@@ -1,4 +1,5 @@
 import Store from './store.js';
+import { evaluateReminders } from './reminders.js';
 import I18n from './i18n.js';
 import { renderDashboard } from './modules/dashboard.js';
 import { renderClients } from './modules/clients.js';
@@ -202,6 +203,17 @@ async function bootWithSession(session) {
 
   Store.seedDemo();
   render();
+
+  // Evaluate reminders after boot
+  if (typeof evaluateReminders === 'function') {
+    const pending = evaluateReminders();
+    if (pending.length) {
+      const quotNav = document.querySelector('[data-route="quotations"]');
+      if (quotNav) {
+        quotNav.insertAdjacentHTML('beforeend', `<span class="nav-badge">${pending.length}</span>`);
+      }
+    }
+  }
 }
 
 const App = {

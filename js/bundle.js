@@ -4857,8 +4857,53 @@ function renderKanban(container) {
 }
 
 
+// ── js/reminders.js ──────────────
+// import Store from './store.js';
+
+const MS = 86400000;
+
+function evaluateReminders() {
+  const settings   = Store.getSettings();
+  const rem        = settings.reminders || {};
+  const quotations = Store.getQuotations();
+  const now        = Date.now();
+  const pending    = [];
+
+  for (const q of quotations) {
+    if (q.status !== 'sent') continue;
+    const sent = q.reminderSent || {};
+    const ref  = q.sentAt || q.date;
+
+    if (rem.noOpen?.enabled && !q.viewedAt && !sent.noOpen && ref) {
+      if ((now - new Date(ref).getTime()) / MS >= (rem.noOpen.days || 3)) {
+        pending.push({ q, type: 'noOpen' });
+      }
+    }
+    if (rem.noReply?.enabled && q.viewedAt && !sent.noReply) {
+      if ((now - new Date(q.viewedAt).getTime()) / MS >= (rem.noReply.days || 2)) {
+        pending.push({ q, type: 'noReply' });
+      }
+    }
+    if (rem.expiring?.enabled && q.validUntil && !sent.expiring) {
+      const left = (new Date(q.validUntil).getTime() - now) / MS;
+      if (left > 0 && left <= (rem.expiring.days || 2)) {
+        pending.push({ q, type: 'expiring' });
+      }
+    }
+  }
+
+  // Mark as sent so they don't fire again
+  for (const { q, type } of pending) {
+    Store.upsertQuotation({ ...q, reminderSent: { ...(q.reminderSent || {}), [type]: true } });
+  }
+
+  return pending;
+}
+
+
 // ── js/app.js ──────────────
 // import Store from './store.js';
+// import { evaluateReminders } from './reminders.js';
 // import I18n from './i18n.js';
 // import { renderDashboard } from './modules/dashboard.js';
 // import { renderClients } from './modules/clients.js';
@@ -5062,6 +5107,17 @@ async function bootWithSession(session) {
 
   Store.seedDemo();
   render();
+
+  // Evaluate reminders after boot
+  if (typeof evaluateReminders === 'function') {
+    const pending = evaluateReminders();
+    if (pending.length) {
+      const quotNav = document.querySelector('[data-route="quotations"]');
+      if (quotNav) {
+        quotNav.insertAdjacentHTML('beforeend', `<span class="nav-badge">${pending.length}</span>`);
+      }
+    }
+  }
 }
 
 const App = {
