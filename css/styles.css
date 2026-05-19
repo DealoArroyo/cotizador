@@ -1184,3 +1184,184 @@ select.form-control { cursor: pointer; }
 
 /* ── Custom Scrollbar for Firefox ────────────────────────────────── */
 * { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) transparent; }
+
+/* ── Kanban board ───────────────────────────────────────────────── */
+.kanban-board {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  overflow-x: auto;
+  padding-bottom: 20px;
+  min-height: 400px;
+}
+.kanban-col {
+  flex: 0 0 220px;
+  min-width: 220px;
+}
+.kanban-col__header {
+  border-top: 3px solid var(--border);
+  padding: 10px 12px 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border-radius: 8px 8px 0 0;
+  user-select: none;
+}
+.kanban-col__header--collapsible { cursor: pointer; }
+.kanban-col__label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; flex: 1; }
+.kanban-col__count { font-size: 11px; background: var(--bg); border-radius: 999px; padding: 1px 7px; color: var(--text-muted); }
+.kanban-col__chevron { width: 14px; height: 14px; color: var(--text-muted); transition: transform .2s; }
+.kanban-col__body { display: flex; flex-direction: column; gap: 8px; padding: 8px; background: var(--bg); border-radius: 0 0 8px 8px; min-height: 60px; }
+.kanban-col__body--collapsed { display: none; }
+.kanban-col__empty { text-align: center; color: var(--text-muted); font-size: 12px; padding: 16px 0; }
+
+/* Kanban card */
+.kanban-card {
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: transform .1s, box-shadow .1s;
+}
+.kanban-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+.kanban-card__client { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+.kanban-card__meta { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.kanban-card__days { font-size: 11px; color: var(--text-muted); }
+.kanban-card__amount { font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
+.kanban-card__convert { width: 100%; margin-top: 8px; font-size: 11px; }
+
+/* Urgency borders */
+.kanban-card--warn-yellow { border-left-color: #fbbf24; }
+.kanban-card--warn-orange { border-left-color: #f97316; }
+
+/* Tracking badges */
+.tracking-badge {
+  display: inline-block;
+  font-size: 11px;
+  border-radius: 999px;
+  padding: 2px 8px;
+  margin-bottom: 4px;
+}
+.tracking-badge--viewed    { background: rgba(34,197,94,.12); color: #22c55e; }
+.tracking-badge--approved  { background: rgba(34,197,94,.18); color: #22c55e; font-weight: 600; }
+.tracking-badge--rejected  { background: rgba(239,68,68,.12); color: #ef4444; }
+.tracking-badge--changes   { background: rgba(251,191,36,.12); color: #fbbf24; }
+
+/* ── View toggle (table / kanban) ───────────────────────────────── */
+.view-toggle { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.view-toggle__btn { background: transparent; border: none; padding: 6px 10px; cursor: pointer; color: var(--text-muted); transition: background .15s; }
+.view-toggle__btn:hover { background: var(--bg); }
+.view-toggle__btn--active { background: var(--primary); color: white; }
+.view-toggle__btn--active:hover { background: var(--primary); }
+
+/* ── Reminder banner ────────────────────────────────────────────── */
+.reminder-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(251,191,36,.1);
+  border: 1px solid rgba(251,191,36,.3);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+.reminder-banner > i { color: #fbbf24; flex-shrink: 0; width: 16px; height: 16px; }
+.reminder-banner > span { flex: 1; }
+
+/* ── Nav badge ──────────────────────────────────────────────────── */
+.nav-badge {
+  position: absolute;
+  top: 6px; right: 6px;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 1px 5px;
+  line-height: 1.4;
+}
+.nav-item { position: relative; }
+
+/* ── Link badge on quotation view ───────────────────────────────── */
+.link-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+}
+
+/* ── Settings: reminder toggles ─────────────────────────────────── */
+.reminder-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.reminder-toggle-row:last-child { border-bottom: none; }
+.toggle-switch { position: relative; display: inline-block; width: 36px; height: 20px; cursor: pointer; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-switch__slider {
+  position: absolute; inset: 0;
+  background: var(--border);
+  border-radius: 999px;
+  transition: background .2s;
+}
+.toggle-switch__slider::before {
+  content: '';
+  position: absolute;
+  width: 14px; height: 14px;
+  left: 3px; top: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: transform .2s;
+}
+.toggle-switch input:checked + .toggle-switch__slider { background: var(--primary); }
+.toggle-switch input:checked + .toggle-switch__slider::before { transform: translateX(16px); }
+
+/* ── Client history + product suggestions ───────────────────────── */
+.client-products-panel {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 10px;
+}
+.client-products-panel__title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.client-products-panel__items { display: flex; flex-wrap: wrap; gap: 6px; }
+.client-product-chip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text);
+  transition: background .15s;
+}
+.client-product-chip:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
+/* ── Utility ─────────────────────────────────────────────────────── */
+.btn--xs { padding: 3px 8px; font-size: 11px; }
+.mt-3 { margin-top: 12px; }
+.mb-3 { margin-bottom: 12px; }
+.text-sm { font-size: 13px; }
+.text-xs { font-size: 11px; }
