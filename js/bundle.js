@@ -4596,10 +4596,13 @@ function renderSettings(container) {
   // Save reminders settings
   container.querySelector('#save-reminders')?.addEventListener('click', () => {
     const s = Store.getSettings();
+    const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+    const rawColor = container.querySelector('#s-portal-color')?.value || '#6366f1';
+    const safeColor = HEX_RE.test(rawColor) ? rawColor : '#6366f1';
     Store.saveSettings({
       ...s,
       approvalMode: container.querySelector('#s-approval-mode')?.value || 'click',
-      portalHeaderColor: container.querySelector('#s-portal-color')?.value || '#6366f1',
+      portalHeaderColor: safeColor,
       reminders: {
         noOpen:   { enabled: container.querySelector('#rem-noopen-enabled')?.checked ?? true,   days: parseInt(container.querySelector('#rem-noopen-days')?.value)   || 3 },
         noReply:  { enabled: container.querySelector('#rem-noreply-enabled')?.checked ?? true,  days: parseInt(container.querySelector('#rem-noreply-days')?.value)  || 2 },
@@ -4627,11 +4630,21 @@ function renderSettings(container) {
     const file = e.target.files[0];
     if (!file) return;
     if (file.size > 1048576) { showToast('El archivo es demasiado grande (máx 1 MB)', 'error'); return; }
+    if (!['image/png', 'image/jpeg', 'image/gif', 'image/webp'].includes(file.type)) {
+      showToast('Formato no permitido. Usa PNG, JPG, GIF o WebP.', 'error');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (ev) => {
+      const result = ev.target.result;
+      const SAFE_IMG_RE = /^data:image\/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/=]+$/;
+      if (!SAFE_IMG_RE.test(result)) {
+        showToast('El archivo no es una imagen válida.', 'error');
+        return;
+      }
       const preview = container.querySelector('#logo-preview');
-      if (preview.tagName === 'IMG') { preview.src = ev.target.result; }
-      else { preview.outerHTML = `<img src="${ev.target.result}" id="logo-preview" class="logo-preview">`; }
+      if (preview.tagName === 'IMG') { preview.src = result; }
+      else { preview.outerHTML = `<img src="${result}" id="logo-preview" class="logo-preview">`; }
     };
     reader.readAsDataURL(file);
   });
@@ -4717,14 +4730,37 @@ function renderSettings(container) {
   container.querySelector('#restore-json')?.addEventListener('change', e => {
     const file = e.target.files[0];
     if (!file) return;
+    const MAX_BACKUP_SIZE = 2 * 1024 * 1024; // 2 MB
+    if (file.size > MAX_BACKUP_SIZE) {
+      showToast('Archivo demasiado grande (máx 2 MB).', 'error');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = ev => {
       try {
-        const backup = JSON.parse(ev.target.result);
-        if (!backup?.data) throw new Error('Formato inválido');
-        const KEYS = { company: 'cot_company', clients: 'cot_clients', products: 'cot_products', quotations: 'cot_quotations', invoices: 'cot_invoices', payments: 'cot_payments', templates: 'cot_templates', settings: 'cot_settings' };
+        const VALID_KEYS = { company: 'cot_company', clients: 'cot_clients', products: 'cot_products', quotations: 'cot_quotations', invoices: 'cot_invoices', payments: 'cot_payments', templates: 'cot_templates', settings: 'cot_settings' };
+        const VALID_KEY_SET = new Set(Object.keys(VALID_KEYS));
+
+        let backup;
+        try { backup = JSON.parse(ev.target.result); }
+        catch { showToast('Archivo inválido: no es JSON.', 'error'); return; }
+
+        if (!backup || typeof backup !== 'object' || !backup.data || typeof backup.data !== 'object') {
+          showToast('Formato de respaldo inválido.', 'error'); return;
+        }
+        const unknownKeys = Object.keys(backup.data).filter(k => !VALID_KEY_SET.has(k));
+        if (unknownKeys.length > 0) {
+          showToast(`Respaldo contiene claves no reconocidas: ${unknownKeys.join(', ')}`, 'error'); return;
+        }
+        for (const [k, v] of Object.entries(backup.data)) {
+          if (v !== null && typeof v !== 'object') {
+            showToast(`Campo "${k}" tiene formato incorrecto.`, 'error'); return;
+          }
+        }
+
         if (!confirm(`¿Restaurar respaldo del ${backup.exportedAt?.slice(0,10) || '?'}?\nEsto REEMPLAZARÁ todos los datos actuales.`)) return;
-        Object.entries(KEYS).forEach(([k, v]) => {
+
+        Object.entries(VALID_KEYS).forEach(([k, v]) => {
           if (backup.data[k] !== undefined && backup.data[k] !== null) {
             localStorage.setItem(v, JSON.stringify(backup.data[k]));
           }
