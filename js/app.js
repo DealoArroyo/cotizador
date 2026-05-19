@@ -232,18 +232,17 @@ async function init() {
   document.documentElement.setAttribute('data-theme', settings.theme || 'dark');
   I18n.setLang(settings.lang || 'es');
 
-  if (SupabaseClient.isConfigured()) {
-    const session = await Auth.getSession();
-    if (!session) {
-      Auth.showScreen(bootWithSession);
-      return;
-    }
-    await bootWithSession(session);
-  } else {
-    // Local-only mode — no Supabase configured
-    Store.seedDemo();
-    render();
+  if (!SupabaseClient.isConfigured()) {
+    Auth.showScreen(bootWithSession);
+    return;
   }
+
+  const session = await Auth.getSession();
+  if (!session) {
+    Auth.showScreen(bootWithSession);
+    return;
+  }
+  await bootWithSession(session);
 }
 
 document.addEventListener('DOMContentLoaded', init);

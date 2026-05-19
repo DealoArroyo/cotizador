@@ -177,6 +177,7 @@ const Store = {
   },
 
   async pushToSupabase(client, userId) {
+    if (!client) return;
     try {
       const { error } = await client.from('user_data').upsert({
         user_id: userId,
@@ -222,6 +223,18 @@ const Store = {
       console.error('Supabase sync exception:', e);
       return 'error';
     }
+  },
+
+  // Apply data received from server without triggering a sync push back
+  applyServerData(data) {
+    if (data.company && Object.keys(data.company).length > 0) save(KEYS.company, data.company);
+    if (Array.isArray(data.clients) && data.clients.length > 0) save(KEYS.clients, data.clients);
+    if (Array.isArray(data.products) && data.products.length > 0) save(KEYS.products, data.products);
+    if (Array.isArray(data.quotations)) save(KEYS.quotations, data.quotations);
+    if (Array.isArray(data.invoices)) save(KEYS.invoices, data.invoices);
+    if (Array.isArray(data.payments)) save(KEYS.payments, data.payments);
+    if (Array.isArray(data.templates)) save(KEYS.templates, data.templates);
+    if (data.settings && Object.keys(data.settings).length > 0) save(KEYS.settings, data.settings);
   },
 
   // Seed demo data if empty

@@ -226,6 +226,7 @@ const Store = {
   },
 
   async pushToSupabase(client, userId) {
+    if (!client) return;
     try {
       const { error } = await client.from('user_data').upsert({
         user_id: userId,
@@ -382,7 +383,7 @@ const Auth = {
           </button>
         </div>
 
-        <details class="auth-config-details">
+        <details class="auth-config-details" ${cfg.url ? '' : 'open'}>
           <summary><i data-lucide="settings"></i> Configuración de Supabase</summary>
           <div class="auth-config-body">
             <p class="text-xs text-muted" style="margin-bottom:10px">
@@ -2269,14 +2270,15 @@ async function sendPublicLink(q, container, params) {
   const token = q.publicToken || generatePublicToken();
   const approvalMode = settings.approvalMode || 'click';
 
-  // Insert / upsert token in Supabase
-  const { error } = await client.from('quote_tokens').upsert(
-    { token, user_id: userId, quote_id: q.id },
-    { onConflict: 'token' }
-  );
-  if (error) {
-    showToast('Error al generar el link: ' + error.message, 'error');
-    return;
+  // Insert token only on first send (reuse existing if already sent)
+  if (!q.publicToken) {
+    const { error } = await client
+      .from('quote_tokens')
+      .insert({ token, user_id: userId, quote_id: q.id });
+    if (error) {
+      showToast('Error al generar el link: ' + error.message, 'error');
+      return;
+    }
   }
 
   // Update quotation
@@ -5378,18 +5380,17 @@ async function init() {
   document.documentElement.setAttribute('data-theme', settings.theme || 'dark');
   I18n.setLang(settings.lang || 'es');
 
-  if (SupabaseClient.isConfigured()) {
-    const session = await Auth.getSession();
-    if (!session) {
-      Auth.showScreen(bootWithSession);
-      return;
-    }
-    await bootWithSession(session);
-  } else {
-    // Local-only mode — no Supabase configured
-    Store.seedDemo();
-    render();
+  if (!SupabaseClient.isConfigured()) {
+    Auth.showScreen(bootWithSession);
+    return;
   }
+
+  const session = await Auth.getSession();
+  if (!session) {
+    Auth.showScreen(bootWithSession);
+    return;
+  }
+  await bootWithSession(session);
 }
 
 document.addEventListener('DOMContentLoaded', init);

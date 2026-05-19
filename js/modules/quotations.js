@@ -201,14 +201,15 @@ async function sendPublicLink(q, container, params) {
   const token = q.publicToken || generatePublicToken();
   const approvalMode = settings.approvalMode || 'click';
 
-  // Insert / upsert token in Supabase
-  const { error } = await client.from('quote_tokens').upsert(
-    { token, user_id: userId, quote_id: q.id },
-    { onConflict: 'token' }
-  );
-  if (error) {
-    showToast('Error al generar el link: ' + error.message, 'error');
-    return;
+  // Insert token only on first send (reuse existing if already sent)
+  if (!q.publicToken) {
+    const { error } = await client
+      .from('quote_tokens')
+      .insert({ token, user_id: userId, quote_id: q.id });
+    if (error) {
+      showToast('Error al generar el link: ' + error.message, 'error');
+      return;
+    }
   }
 
   // Update quotation

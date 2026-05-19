@@ -81,7 +81,7 @@ const Auth = {
           </button>
         </div>
 
-        <details class="auth-config-details">
+        <details class="auth-config-details" ${cfg.url ? '' : 'open'}>
           <summary><i data-lucide="settings"></i> Configuración de Supabase</summary>
           <div class="auth-config-body">
             <p class="text-xs text-muted" style="margin-bottom:10px">
