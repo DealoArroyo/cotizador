@@ -125,8 +125,8 @@ export function renderQuotations(container, params = {}) {
             const client = clients.find(c => c.id === q.clientId);
             const expired = q.validUntil && q.validUntil < today() && q.status === 'sent';
             return `<tr>
-              <td><span class="mono link-cell" data-action="view" data-id="${q.id}">${q.folio}</span></td>
-              <td>${client?.name || '—'}</td>
+              <td><span class="mono link-cell" data-action="view" data-id="${q.id}">${escapeHTML(q.folio)}</span></td>
+              <td>${escapeHTML(client?.name) || '—'}</td>
               <td>${formatDate(q.date)}</td>
               <td class="${expired ? 'text-danger' : ''}">${formatDate(q.validUntil)}</td>
               <td>${formatCurrency(q.total, q.currency)}</td>
@@ -371,7 +371,7 @@ function renderQuotationForm(container, id, params = {}) {
                 <label class="form-label required">${t('quot_client')}</label>
                 <select class="form-control" id="q-client">
                   <option value="">Seleccionar cliente...</option>
-                  ${clients.map(c => `<option value="${c.id}" ${c.id === (q?.clientId || baseQ?.clientId) ? 'selected' : ''}>${c.name} – ${c.rfc}</option>`).join('')}
+                  ${clients.map(c => `<option value="${c.id}" ${c.id === (q?.clientId || baseQ?.clientId) ? 'selected' : ''}>${escapeHTML(c.name)} – ${escapeHTML(c.rfc)}</option>`).join('')}
                 </select>
                 <div id="client-products-panel" class="client-products-panel" style="display:none">
                   <div class="client-products-panel__title">
@@ -384,7 +384,7 @@ function renderQuotationForm(container, id, params = {}) {
                 <label class="form-label">${t('quot_template')}</label>
                 <select class="form-control" id="q-template">
                   <option value="">Sin plantilla</option>
-                  ${templates.map(tp => `<option value="${tp.id}">${tp.name}</option>`).join('')}
+                  ${templates.map(tp => `<option value="${tp.id}">${escapeHTML(tp.name)}</option>`).join('')}
                 </select>
               </div>
             </div>
@@ -461,7 +461,7 @@ function renderQuotationForm(container, id, params = {}) {
     panel.style.display = 'block';
     list.innerHTML = suggestions.map((item, i) =>
       `<button class="client-product-chip" data-idx="${i}">
-         ${item.description || item.name || '—'} · ${formatCurrency(item.unitPrice || 0, item.currency || 'MXN')}
+         ${escapeHTML(item.description || item.name || '—')} · ${formatCurrency(item.unitPrice || 0, item.currency || 'MXN')}
        </button>`
     ).join('');
 
@@ -668,7 +668,7 @@ function renderQuotationView(container, id) {
   container.innerHTML = `
     <div class="page-header">
       <button class="btn btn--ghost btn--sm" id="back-quot"><i data-lucide="arrow-left"></i> ${t('quot_title')}</button>
-      <h1 class="page-title">${q.folio} <span class="badge badge--${q.status} badge--lg">${t(`status_${q.status}`)}</span></h1>
+      <h1 class="page-title">${escapeHTML(q.folio)} <span class="badge badge--${q.status} badge--lg">${t(`status_${q.status}`)}</span></h1>
       <div class="page-actions">
         ${actions.map(a => `<button class="btn btn--${a.style}" data-action="${a.action}"><i data-lucide="${a.icon}"></i> ${a.label}</button>`).join('')}
         <button class="btn btn--ghost btn--sm" id="btn-whatsapp" title="Compartir por WhatsApp"><i data-lucide="message-circle"></i> WhatsApp</button>
@@ -698,7 +698,7 @@ function renderQuotationView(container, id) {
           <div class="card__header"><span class="card__title"><i data-lucide="info"></i> Resumen</span></div>
           <div class="card__body">
             <dl class="info-list">
-              <dt>Folio</dt><dd class="mono">${q.folio}</dd>
+              <dt>Folio</dt><dd class="mono">${escapeHTML(q.folio)}</dd>
               <dt>Fecha</dt><dd>${formatDate(q.date)}</dd>
               <dt>Válida hasta</dt><dd>${formatDate(q.validUntil)}</dd>
               <dt>Moneda</dt><dd>${q.currency}</dd>
@@ -714,7 +714,7 @@ function renderQuotationView(container, id) {
                 <div class="timeline-item">
                   <div class="timeline-dot"></div>
                   <div class="timeline-content">
-                    <p class="timeline-event">${h.event}</p>
+                    <p class="timeline-event">${escapeHTML(h.event)}</p>
                     <span class="timeline-date">${new Date(h.date).toLocaleString('es-MX')}</span>
                   </div>
                 </div>`).join('') || '<p class="text-muted p-4">Sin historial</p>'}
@@ -787,16 +787,16 @@ function buildDocumentPreview(q, client, company, settings) {
         <div class="doc-company">
           ${company.logo ? `<img src="${company.logo}" class="doc-logo">` : `<div class="doc-logo-placeholder">${(company.name || 'E')[0]}</div>`}
           <div class="doc-company-info">
-            <h2>${company.name || 'Mi Empresa'}</h2>
-            <p>RFC: ${company.rfc || '—'}</p>
-            <p>${company.domicilioFiscal || ''}</p>
-            <p>${company.email || ''} ${company.telefono ? '· ' + company.telefono : ''}</p>
+            <h2>${escapeHTML(company.name) || 'Mi Empresa'}</h2>
+            <p>RFC: ${escapeHTML(company.rfc) || '—'}</p>
+            <p>${escapeHTML(company.domicilioFiscal) || ''}</p>
+            <p>${escapeHTML(company.email) || ''} ${company.telefono ? '· ' + escapeHTML(company.telefono) : ''}</p>
           </div>
         </div>
         <div class="doc-meta">
           <h1 class="doc-type">COTIZACIÓN</h1>
           <table class="doc-meta-table">
-            <tr><td>Folio:</td><td class="mono">${q.folio}</td></tr>
+            <tr><td>Folio:</td><td class="mono">${escapeHTML(q.folio)}</td></tr>
             <tr><td>Fecha:</td><td>${formatDate(q.date)}</td></tr>
             <tr><td>Válida hasta:</td><td>${formatDate(q.validUntil)}</td></tr>
             <tr><td>Moneda:</td><td>${q.currency}</td></tr>
@@ -806,10 +806,10 @@ function buildDocumentPreview(q, client, company, settings) {
 
       <div class="doc-client">
         <div class="doc-section-label">CLIENTE</div>
-        <h3>${client?.name || '—'}</h3>
-        <p>RFC: ${client?.rfc || '—'}</p>
-        <p>${client?.address || ''}</p>
-        <p>${client?.email || ''}</p>
+        <h3>${escapeHTML(client?.name) || '—'}</h3>
+        <p>RFC: ${escapeHTML(client?.rfc) || '—'}</p>
+        <p>${escapeHTML(client?.address) || ''}</p>
+        <p>${escapeHTML(client?.email) || ''}</p>
       </div>
 
       <table class="doc-items">
@@ -824,7 +824,7 @@ function buildDocumentPreview(q, client, company, settings) {
             const total = base - disc + taxAmt;
             return `<tr>
               <td>${i + 1}</td>
-              <td>${item.description || ''}</td>
+              <td>${escapeHTML(item.description) || ''}</td>
               <td class="text-right">${item.qty}</td>
               <td class="text-right">$${(item.unitPrice || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
               <td class="text-right">${item.discount || 0}%</td>
@@ -842,10 +842,10 @@ function buildDocumentPreview(q, client, company, settings) {
         <div class="doc-totals-row doc-totals-row--grand"><span>Total</span><span>$${(q.total || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })} ${q.currency}</span></div>
       </div>
 
-      ${q.notes ? `<div class="doc-notes"><div class="doc-section-label">NOTAS</div><p>${q.notes}</p></div>` : ''}
-      ${q.terms ? `<div class="doc-terms"><div class="doc-section-label">TÉRMINOS Y CONDICIONES</div><p>${q.terms}</p></div>` : ''}
+      ${q.notes ? `<div class="doc-notes"><div class="doc-section-label">NOTAS</div><p>${escapeHTML(q.notes)}</p></div>` : ''}
+      ${q.terms ? `<div class="doc-terms"><div class="doc-section-label">TÉRMINOS Y CONDICIONES</div><p>${escapeHTML(q.terms)}</p></div>` : ''}
 
-      ${company.cuenta ? `<div class="doc-payment"><div class="doc-section-label">DATOS DE PAGO</div><p>${company.banco ? company.banco + ' · ' : ''}${company.cuenta}</p></div>` : ''}
+      ${company.cuenta ? `<div class="doc-payment"><div class="doc-section-label">DATOS DE PAGO</div><p>${company.banco ? escapeHTML(company.banco) + ' · ' : ''}${escapeHTML(company.cuenta)}</p></div>` : ''}
 
       <div class="doc-footer">
         <p>Documento generado el ${new Date().toLocaleString('es-MX')}</p>
