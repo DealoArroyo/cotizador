@@ -7,6 +7,9 @@ import urllib.parse
 import html as htmllib
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from datetime import datetime, timezone
+import re
+import time
+from collections import defaultdict
 
 # Load .env if present (no external deps)
 _env_path = os.path.join(os.path.dirname(__file__), '.env')
@@ -20,6 +23,14 @@ if os.path.isfile(_env_path):
 
 SUPABASE_URL = os.getenv('SUPABASE_URL', '').rstrip('/')
 SERVICE_KEY  = os.getenv('SUPABASE_SERVICE_ROLE_KEY', '')
+
+TOKEN_RE = re.compile(r'^[a-f0-9]{32}$')
+HEX_COLOR_RE = re.compile(r'^#[0-9a-fA-F]{6}$')
+MAX_BODY_BYTES = 8 * 1024  # 8 KB
+
+_rate_limit: dict = defaultdict(list)
+RATE_LIMIT_MAX = 30
+RATE_LIMIT_WINDOW = 60  # seconds
 
 
 def sb_get(table, params):
@@ -45,6 +56,16 @@ def sb_patch(table, params, body):
     })
     with urllib.request.urlopen(req, timeout=10) as r:
         return r.status
+
+
+def _check_rate_limit(ip: str) -> bool:
+    now = time.time()
+    window_start = now - RATE_LIMIT_WINDOW
+    _rate_limit[ip] = [t for t in _rate_limit[ip] if t > window_start]
+    if len(_rate_limit[ip]) >= RATE_LIMIT_MAX:
+        return False
+    _rate_limit[ip].append(now)
+    return True
 
 
 def fmt_currency(amount, currency='MXN'):
@@ -267,6 +288,9 @@ class Handler(SimpleHTTPRequestHandler):
             token    = parts[3]
             endpoint = parts[4]
             length   = int(self.headers.get('Content-Length', 0))
+            if length > MAX_BODY_BYTES:
+                self._json(413, {'error': 'Payload too large'})
+                return
             body     = json.loads(self.rfile.read(length)) if length else {}
             if endpoint == 'viewed':
                 self._handle_viewed(token)
@@ -279,6 +303,8 @@ class Handler(SimpleHTTPRequestHandler):
 
     # ── portal GET ────────────────────────────────────────────
     def _serve_portal(self, token):
+        if not TOKEN_RE.match(token):
+            return self._html(404, render_error('Esta cotización ya no está disponible'))
         if not SUPABASE_URL or not SERVICE_KEY:
             return self._html(503, render_error('Servidor no configurado'))
         try:
@@ -306,6 +332,8 @@ class Handler(SimpleHTTPRequestHandler):
 
     # ── POST /api/q/:token/viewed ─────────────────────────────
     def _handle_viewed(self, token):
+        if not TOKEN_RE.match(token):
+            return self._json(404, {'error': 'not found'})
         try:
             rows = sb_get('quote_tokens', {'token': f'eq.{token}', 'select': '*'})
             if not rows:
@@ -337,6 +365,8 @@ class Handler(SimpleHTTPRequestHandler):
         action = body.get('action')
         if action not in ('approved', 'rejected', 'changes_requested'):
             return self._json(400, {'error': 'invalid action'})
+        if not TOKEN_RE.match(token):
+            return self._json(404, {'error': 'not found'})
         try:
             rows = sb_get('quote_tokens', {'token': f'eq.{token}', 'select': '*'})
             if not rows:
@@ -349,6 +379,11 @@ class Handler(SimpleHTTPRequestHandler):
             quotations = ud_rows[0].get('quotations') or []
             now = datetime.now(timezone.utc).isoformat()
 
+            # Field length limits
+            comment     = str(body.get('comment', ''))[:1000].strip()
+            client_name = str(body.get('clientName', ''))[:100].strip()
+            signed_at   = str(body.get('signedAt', ''))[:40].strip()
+
             for qt in quotations:
                 if qt.get('id') == quote_id:
                     qt['status'] = action
@@ -358,12 +393,12 @@ class Handler(SimpleHTTPRequestHandler):
                         qt['rejectedAt'] = now
                     else:
                         qt['changesRequestedAt'] = now
-                    if body.get('comment'):
-                        qt['clientComment'] = body['comment']
-                    if body.get('clientName'):
-                        qt['clientName'] = body['clientName']
-                    if body.get('signedAt'):
-                        qt['signedAt'] = body['signedAt']
+                    if comment:
+                        qt['clientComment'] = comment
+                    if client_name:
+                        qt['clientName'] = client_name
+                    if signed_at:
+                        qt['signedAt'] = signed_at
                     break
 
             sb_patch('user_data', {'user_id': f'eq.{user_id}'}, {'quotations': quotations})
