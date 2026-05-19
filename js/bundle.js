@@ -76,6 +76,14 @@ const defaults = {
     theme: 'dark', lang: 'es', currency: 'MXN', exchangeRate: 17.50,
     iva: 16, ieps: 0, retIVA: 0, retISR: 0,
     paymentTerms: 30, validityDays: 15,
+    approvalMode: 'click',
+    portalHeaderColor: '#6366f1',
+    quotationsView: 'kanban',
+    reminders: {
+      noOpen:   { enabled: true,  days: 3 },
+      noReply:  { enabled: true,  days: 2 },
+      expiring: { enabled: false, days: 2 },
+    },
   },
 };
 
@@ -1295,6 +1303,12 @@ function buildSelectOptions(options, valueKey, labelKey, selectedValue = '') {
 function debounce(fn, ms = 300) {
   let t;
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+function generatePublicToken() {
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
 }
 
 
