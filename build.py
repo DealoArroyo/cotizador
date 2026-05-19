@@ -21,6 +21,8 @@ FILES = [
     'js/modules/templates.js',
     'js/modules/reports.js',
     'js/modules/settings.js',
+    'js/modules/kanban.js',
+    'js/reminders.js',
     'js/app.js',
 ]
 

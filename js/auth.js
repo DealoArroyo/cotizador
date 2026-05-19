@@ -143,7 +143,7 @@ const Auth = {
     const client = SupabaseClient.get();
     const errEl = overlay.querySelector('#auth-reg-error');
     if (!client) {
-      errEl.textContent = 'Primero configura tu proyecto Supabase.';
+      errEl.textContent = 'Error de conexión con el servidor. Intenta de nuevo.';
       errEl.classList.remove('hidden');
       return;
     }
