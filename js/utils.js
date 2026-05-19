@@ -69,6 +69,16 @@ export function escapeXml(str) {
     .replace(/'/g, '&apos;');
 }
 
+export function escapeHTML(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export function generateCFDIXml(invoice, company) {
   const esc = escapeXml;
   const items = invoice.items || [];
