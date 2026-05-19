@@ -1,6 +1,6 @@
 import Store from '../store.js';
 import I18n from '../i18n.js';
-import { uid, showToast, confirmDialog, exportCSV, debounce } from '../utils.js';
+import { uid, showToast, confirmDialog, exportCSV, debounce, escapeHTML } from '../utils.js';
 import { CLAVES_PROD_SERV, CLAVES_UNIDAD, CURRENCIES } from '../catalogs.js';
 
 let prodsSearch = '';
@@ -36,7 +36,7 @@ export function renderProducts(container, params = {}) {
       </div>
       <select class="form-control form-control--sm" id="cat-filter">
         <option value="">Todas las categorías</option>
-        ${categories.map(c => `<option value="${c}" ${prodsCatFilter === c ? 'selected' : ''}>${c}</option>`).join('')}
+        ${categories.map(c => `<option value="${escapeHTML(c)}" ${prodsCatFilter === c ? 'selected' : ''}>${escapeHTML(c)}</option>`).join('')}
       </select>
       <span class="record-count">${products.length} productos</span>
     </div>
@@ -45,15 +45,15 @@ export function renderProducts(container, params = {}) {
       ${products.length ? products.map(p => `
         <div class="product-card">
           <div class="product-card__header">
-            <span class="product-code">${p.code || '—'}</span>
-            ${p.category ? `<span class="badge badge--category">${p.category}</span>` : ''}
+            <span class="product-code">${escapeHTML(p.code || '—')}</span>
+            ${p.category ? `<span class="badge badge--category">${escapeHTML(p.category)}</span>` : ''}
           </div>
           <div class="product-card__body">
-            <h3 class="product-name">${p.name}</h3>
-            <p class="product-desc">${p.description || ''}</p>
+            <h3 class="product-name">${escapeHTML(p.name || '')}</h3>
+            <p class="product-desc">${escapeHTML(p.description || '')}</p>
             <div class="product-meta">
-              <span class="product-clave" title="ClaveProdServ"><i data-lucide="tag"></i> ${p.claveProdServ || '—'}</span>
-              <span class="product-unit" title="Unidad"><i data-lucide="ruler"></i> ${p.claveUnidad || '—'} / ${p.unit || ''}</span>
+              <span class="product-clave" title="ClaveProdServ"><i data-lucide="tag"></i> ${escapeHTML(p.claveProdServ || '—')}</span>
+              <span class="product-unit" title="Unidad"><i data-lucide="ruler"></i> ${escapeHTML(p.claveUnidad || '—')} / ${escapeHTML(p.unit || '')}</span>
             </div>
           </div>
           <div class="product-card__footer">
@@ -123,26 +123,26 @@ function renderProductForm(container, id) {
           <div class="form-row form-row--2">
             <div class="form-group">
               <label class="form-label">${t('prod_code')}</label>
-              <input class="form-control" id="p-code" value="${p.code || ''}" placeholder="SW-001">
+              <input class="form-control" id="p-code" value="${escapeHTML(p.code || '')}" placeholder="SW-001">
             </div>
             <div class="form-group">
               <label class="form-label">${t('prod_category')}</label>
-              <input class="form-control" id="p-category" value="${p.category || ''}" placeholder="Desarrollo, Consultoría...">
+              <input class="form-control" id="p-category" value="${escapeHTML(p.category || '')}" placeholder="Desarrollo, Consultoría...">
             </div>
           </div>
           <div class="form-group">
             <label class="form-label required">${t('prod_name')}</label>
-            <input class="form-control" id="p-name" value="${p.name || ''}">
+            <input class="form-control" id="p-name" value="${escapeHTML(p.name || '')}">
           </div>
           <div class="form-group">
             <label class="form-label">${t('prod_description')}</label>
-            <textarea class="form-control" id="p-desc" rows="3">${p.description || ''}</textarea>
+            <textarea class="form-control" id="p-desc" rows="3">${escapeHTML(p.description || '')}</textarea>
           </div>
           <div class="form-row form-row--2">
             <div class="form-group">
               <label class="form-label required">${t('prod_clave_prod_serv')}</label>
               <div class="input-with-search">
-                <input class="form-control" id="p-cps" value="${p.claveProdServ || ''}" placeholder="81111501" list="cps-list">
+                <input class="form-control" id="p-cps" value="${escapeHTML(p.claveProdServ || '')}" placeholder="81111501" list="cps-list">
                 <datalist id="cps-list">
                   ${CLAVES_PROD_SERV.map(c => `<option value="${c.clave}">${c.clave} – ${c.descripcion}</option>`).join('')}
                 </datalist>
@@ -150,7 +150,7 @@ function renderProductForm(container, id) {
             </div>
             <div class="form-group">
               <label class="form-label required">${t('prod_clave_unidad')}</label>
-              <input class="form-control" id="p-cu" value="${p.claveUnidad || ''}" placeholder="E48" list="cu-list">
+              <input class="form-control" id="p-cu" value="${escapeHTML(p.claveUnidad || '')}" placeholder="E48" list="cu-list">
               <datalist id="cu-list">
                 ${CLAVES_UNIDAD.map(c => `<option value="${c.clave}">${c.clave} – ${c.descripcion}</option>`).join('')}
               </datalist>
@@ -159,7 +159,7 @@ function renderProductForm(container, id) {
           <div class="form-row form-row--2">
             <div class="form-group">
               <label class="form-label">${t('prod_unit')}</label>
-              <input class="form-control" id="p-unit" value="${p.unit || 'Servicio'}">
+              <input class="form-control" id="p-unit" value="${escapeHTML(p.unit || 'Servicio')}">
             </div>
             <div class="form-group">
               <label class="form-label">${t('prod_tax_rate')}</label>

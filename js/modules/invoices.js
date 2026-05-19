@@ -1,6 +1,6 @@
 import Store from '../store.js';
 import I18n from '../i18n.js';
-import { uid, today, formatDate, calcQuotationTotals, showToast, confirmDialog, generateUUID, generateSello, generateNoCertificado, generateCadenaOriginal, generateQRData, generateCFDIXml, downloadFile, formatCurrency, debounce } from '../utils.js';
+import { uid, today, formatDate, calcQuotationTotals, showToast, confirmDialog, generateUUID, generateSello, generateNoCertificado, generateCadenaOriginal, generateQRData, generateCFDIXml, downloadFile, formatCurrency, debounce, escapeHTML } from '../utils.js';
 import { REGIMENES_FISCALES, USOS_CFDI, METODOS_PAGO, FORMAS_PAGO, CURRENCIES, numberToWords } from '../catalogs.js';
 import { buildDocumentPreview, printDocumentFromHtml } from './quotations.js';
 
@@ -49,9 +49,9 @@ export function renderInvoices(container, params = {}) {
           ${invoices.map(inv => {
             const client = clients.find(c => c.id === inv.clientId);
             return `<tr>
-              <td><span class="mono link-cell" data-action="view" data-id="${inv.id}">${inv.folio}</span></td>
-              <td><span class="mono text-xs">${inv.uuid ? inv.uuid.slice(0, 8) + '…' : '—'}</span></td>
-              <td>${client?.name || '—'}</td>
+              <td><span class="mono link-cell" data-action="view" data-id="${inv.id}">${escapeHTML(inv.folio || '')}</span></td>
+              <td><span class="mono text-xs">${inv.uuid ? escapeHTML(inv.uuid.slice(0, 8)) + '…' : '—'}</span></td>
+              <td>${escapeHTML(client?.name || '—')}</td>
               <td>${formatDate(inv.date)}</td>
               <td><span class="badge badge--${inv.metodoPago === 'PUE' ? 'approved' : 'sent'}">${inv.metodoPago || '—'}</span></td>
               <td>${formatCurrency(inv.total, inv.currency)}</td>
@@ -246,10 +246,10 @@ function renderInvoiceForm(container, id, fromQuotationId) {
           <div class="card__header"><span class="card__title">Emisor</span></div>
           <div class="card__body">
             <dl class="info-list info-list--sm">
-              <dt>Nombre</dt><dd>${company.name || '—'}</dd>
-              <dt>RFC</dt><dd class="mono">${company.rfc || '—'}</dd>
+              <dt>Nombre</dt><dd>${escapeHTML(company.name || '—')}</dd>
+              <dt>RFC</dt><dd class="mono">${escapeHTML(company.rfc || '—')}</dd>
               <dt>Régimen</dt><dd>${REGIMENES_FISCALES.find(r => r.clave === company.regimenFiscal)?.descripcion?.slice(0, 35) || company.regimenFiscal || '—'}</dd>
-              <dt>CP</dt><dd>${company.codigoPostal || '—'}</dd>
+              <dt>CP</dt><dd>${escapeHTML(company.codigoPostal || '—')}</dd>
             </dl>
             ${!company.rfc ? `<div class="alert alert--warning"><i data-lucide="alert-triangle"></i> Configura los datos fiscales de tu empresa en Configuración antes de timbrar.</div>` : ''}
           </div>
@@ -414,7 +414,7 @@ function renderInvoiceView(container, id) {
   container.innerHTML = `
     <div class="page-header">
       <button class="btn btn--ghost btn--sm" id="back-inv"><i data-lucide="arrow-left"></i> ${t('inv_title')}</button>
-      <h1 class="page-title">${inv.folio} <span class="badge badge--${inv.status} badge--lg">${t(`status_${inv.status}`)}</span></h1>
+      <h1 class="page-title">${escapeHTML(inv.folio || '')} <span class="badge badge--${inv.status} badge--lg">${t(`status_${inv.status}`)}</span></h1>
       <div class="page-actions">
         ${inv.status === 'draft' ? `<button class="btn btn--primary" data-action="stamp"><i data-lucide="stamp"></i> ${t('inv_stamp')}</button>` : ''}
         ${inv.status === 'stamped' ? `
@@ -437,12 +437,12 @@ function renderInvoiceView(container, id) {
           <div class="card__header"><span class="card__title">Datos fiscales</span></div>
           <div class="card__body">
             <dl class="info-list info-list--sm">
-              <dt>UUID</dt><dd class="mono text-xs">${inv.uuid || '—'}</dd>
+              <dt>UUID</dt><dd class="mono text-xs">${escapeHTML(inv.uuid || '—')}</dd>
               <dt>Método de pago</dt><dd>${inv.metodoPago || '—'}</dd>
               <dt>Forma de pago</dt><dd>${FORMAS_PAGO.find(f => f.clave === inv.formaPago)?.descripcion || inv.formaPago || '—'}</dd>
               <dt>Uso CFDI</dt><dd>${USOS_CFDI.find(u => u.clave === inv.usoCFDI)?.descripcion || inv.usoCFDI || '—'}</dd>
-              <dt>RFC emisor</dt><dd class="mono">${company.rfc || '—'}</dd>
-              <dt>RFC receptor</dt><dd class="mono">${inv.clientRfc || client?.rfc || '—'}</dd>
+              <dt>RFC emisor</dt><dd class="mono">${escapeHTML(company.rfc || '—')}</dd>
+              <dt>RFC receptor</dt><dd class="mono">${escapeHTML(inv.clientRfc || client?.rfc || '—')}</dd>
             </dl>
           </div>
         </div>
@@ -466,7 +466,7 @@ function renderInvoiceView(container, id) {
         <div class="card">
           <div class="card__header"><span class="card__title">${t('inv_cadena')}</span></div>
           <div class="card__body">
-            <pre class="cadena-text">${inv.cadenaOriginal}</pre>
+            <pre class="cadena-text">${escapeHTML(inv.cadenaOriginal || '')}</pre>
           </div>
         </div>` : ''}
       </div>
@@ -501,15 +501,15 @@ function buildCFDIPreview(inv, client, company) {
           <div class="doc-company">
             ${company.logo ? `<img src="${company.logo}" class="doc-logo">` : `<div class="doc-logo-placeholder">${(company.name || 'E')[0]}</div>`}
             <div class="doc-company-info">
-              <h2>${company.name || 'Mi Empresa'}</h2>
-              <p>RFC: ${company.rfc || '—'} · Régimen: ${REGIMENES_FISCALES.find(r => r.clave === company.regimenFiscal)?.descripcion?.slice(0, 40) || company.regimenFiscal || '—'}</p>
-              <p>Lugar de expedición: ${company.codigoPostal || '—'}</p>
+              <h2>${escapeHTML(company.name || 'Mi Empresa')}</h2>
+              <p>RFC: ${escapeHTML(company.rfc || '—')} · Régimen: ${REGIMENES_FISCALES.find(r => r.clave === company.regimenFiscal)?.descripcion?.slice(0, 40) || company.regimenFiscal || '—'}</p>
+              <p>Lugar de expedición: ${escapeHTML(company.codigoPostal || '—')}</p>
             </div>
           </div>
           <div class="doc-meta">
             <h1 class="doc-type">FACTURA</h1>
             <table class="doc-meta-table">
-              <tr><td>Serie-Folio:</td><td class="mono">${inv.folio}</td></tr>
+              <tr><td>Serie-Folio:</td><td class="mono">${escapeHTML(inv.folio || '')}</td></tr>
               <tr><td>Fecha:</td><td>${formatDate(inv.date)}</td></tr>
               <tr><td>Método pago:</td><td>${inv.metodoPago || '—'}</td></tr>
               <tr><td>Forma pago:</td><td>${FORMAS_PAGO.find(f => f.clave === inv.formaPago)?.descripcion || inv.formaPago || '—'}</td></tr>
@@ -522,9 +522,9 @@ function buildCFDIPreview(inv, client, company) {
         <div class="doc-section-label">RECEPTOR</div>
         <div class="cfdi-receptor-grid">
           <div>
-            <strong>${client?.name || inv.clientName || '—'}</strong>
-            <p>RFC: ${inv.clientRfc || client?.rfc || '—'}</p>
-            <p>${client?.address || ''}</p>
+            <strong>${escapeHTML(client?.name || inv.clientName || '—')}</strong>
+            <p>RFC: ${escapeHTML(inv.clientRfc || client?.rfc || '—')}</p>
+            <p>${escapeHTML(client?.address || '')}</p>
           </div>
           <div>
             <p>Régimen fiscal: ${REGIMENES_FISCALES.find(r => r.clave === inv.clientRegimen)?.descripcion?.slice(0, 40) || inv.clientRegimen || '—'}</p>
@@ -541,10 +541,10 @@ function buildCFDIPreview(inv, client, company) {
           ${items.map(item => {
             const importe = ((item.qty || 0) * (item.unitPrice || 0) * (1 - (item.discount || 0) / 100));
             return `<tr>
-              <td class="mono text-xs">${item.claveProdServ || '—'}</td>
-              <td>${item.description || ''}</td>
+              <td class="mono text-xs">${escapeHTML(item.claveProdServ || '—')}</td>
+              <td>${escapeHTML(item.description || '')}</td>
               <td class="text-right">${item.qty}</td>
-              <td class="mono text-xs">${item.claveUnidad || '—'}</td>
+              <td class="mono text-xs">${escapeHTML(item.claveUnidad || '—')}</td>
               <td class="text-right">$${(item.unitPrice || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
               <td class="text-right">${item.discount || 0}%</td>
               <td class="text-right">$${importe.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
@@ -569,12 +569,12 @@ function buildCFDIPreview(inv, client, company) {
       <div class="cfdi-timbre">
         <div class="cfdi-timbre-content">
           <div class="cfdi-timbre-data">
-            <p><strong>UUID:</strong> <span class="mono">${inv.uuid}</span></p>
-            <p><strong>RFC emisor:</strong> <span class="mono">${company.rfc || '—'}</span></p>
-            <p><strong>RFC receptor:</strong> <span class="mono">${inv.clientRfc || '—'}</span></p>
+            <p><strong>UUID:</strong> <span class="mono">${escapeHTML(inv.uuid || '')}</span></p>
+            <p><strong>RFC emisor:</strong> <span class="mono">${escapeHTML(company.rfc || '—')}</span></p>
+            <p><strong>RFC receptor:</strong> <span class="mono">${escapeHTML(inv.clientRfc || '—')}</span></p>
             <p><strong>Fecha timbrado:</strong> ${inv.stampedAt ? new Date(inv.stampedAt).toLocaleString('es-MX') : '—'}</p>
-            <p><strong>No. Certificado:</strong> <span class="mono">${inv.noCertificado || '—'}</span></p>
-            <p class="cfdi-sello"><strong>Sello SAT:</strong> <span class="mono text-xs">${(inv.sello || '').slice(0, 64)}…</span></p>
+            <p><strong>No. Certificado:</strong> <span class="mono">${escapeHTML(inv.noCertificado || '—')}</span></p>
+            <p class="cfdi-sello"><strong>Sello SAT:</strong> <span class="mono text-xs">${escapeHTML((inv.sello || '').slice(0, 64))}…</span></p>
           </div>
           <div class="cfdi-qr" id="cfdi-qr-${inv.id}"></div>
         </div>

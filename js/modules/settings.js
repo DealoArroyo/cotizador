@@ -1,6 +1,6 @@
 import Store from '../store.js';
 import I18n from '../i18n.js';
-import { showToast } from '../utils.js';
+import { showToast, escapeHTML } from '../utils.js';
 import { REGIMENES_FISCALES, CURRENCIES } from '../catalogs.js';
 
 export function renderSettings(container) {
@@ -33,11 +33,11 @@ export function renderSettings(container) {
           <div class="form-row form-row--2">
             <div class="form-group">
               <label class="form-label required">${t('set_company_name')}</label>
-              <input class="form-control" id="s-name" value="${company.name || ''}">
+              <input class="form-control" id="s-name" value="${escapeHTML(company.name || '')}">
             </div>
             <div class="form-group">
               <label class="form-label required">${t('set_rfc')}</label>
-              <input class="form-control mono" id="s-rfc" value="${company.rfc || ''}" maxlength="13" placeholder="RFC000000XXX">
+              <input class="form-control mono" id="s-rfc" value="${escapeHTML(company.rfc || '')}" maxlength="13" placeholder="RFC000000XXX">
             </div>
           </div>
           <div class="form-row form-row--2">
@@ -49,35 +49,35 @@ export function renderSettings(container) {
             </div>
             <div class="form-group">
               <label class="form-label required">${t('set_cp')}</label>
-              <input class="form-control" id="s-cp" value="${company.codigoPostal || ''}" maxlength="5" placeholder="06600">
+              <input class="form-control" id="s-cp" value="${escapeHTML(company.codigoPostal || '')}" maxlength="5" placeholder="06600">
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">Domicilio fiscal</label>
-            <input class="form-control" id="s-dom" value="${company.domicilioFiscal || ''}">
+            <input class="form-control" id="s-dom" value="${escapeHTML(company.domicilioFiscal || '')}">
           </div>
           <div class="form-row form-row--2">
             <div class="form-group">
               <label class="form-label">Correo electrónico</label>
-              <input class="form-control" id="s-email" type="email" value="${company.email || ''}">
+              <input class="form-control" id="s-email" type="email" value="${escapeHTML(company.email || '')}">
             </div>
             <div class="form-group">
               <label class="form-label">Teléfono</label>
-              <input class="form-control" id="s-tel" value="${company.telefono || ''}">
+              <input class="form-control" id="s-tel" value="${escapeHTML(company.telefono || '')}">
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">Sitio web</label>
-            <input class="form-control" id="s-web" value="${company.website || ''}">
+            <input class="form-control" id="s-web" value="${escapeHTML(company.website || '')}">
           </div>
           <div class="form-row form-row--2">
             <div class="form-group">
               <label class="form-label">${t('set_banco')}</label>
-              <input class="form-control" id="s-banco" value="${company.banco || ''}">
+              <input class="form-control" id="s-banco" value="${escapeHTML(company.banco || '')}">
             </div>
             <div class="form-group">
               <label class="form-label">${t('set_cuenta')}</label>
-              <input class="form-control mono" id="s-cuenta" value="${company.cuenta || ''}" maxlength="18">
+              <input class="form-control mono" id="s-cuenta" value="${escapeHTML(company.cuenta || '')}" maxlength="18">
             </div>
           </div>
         </div>
@@ -90,7 +90,7 @@ export function renderSettings(container) {
           <div class="form-row form-row--3">
             <div class="form-group">
               <label class="form-label">${t('set_serie')}</label>
-              <input class="form-control mono" id="s-serie" value="${company.serie || 'A'}" maxlength="3">
+              <input class="form-control mono" id="s-serie" value="${escapeHTML(company.serie || 'A')}" maxlength="3">
             </div>
             <div class="form-group">
               <label class="form-label">${t('set_folio_cot')}</label>

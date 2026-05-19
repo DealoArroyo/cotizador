@@ -1,6 +1,6 @@
 import Store from '../store.js';
 import I18n from '../i18n.js';
-import { uid, showToast, confirmDialog, exportCSV, importCSV, debounce, formatDate, formatCurrency } from '../utils.js';
+import { uid, showToast, confirmDialog, exportCSV, importCSV, debounce, formatDate, formatCurrency, escapeHTML } from '../utils.js';
 import { REGIMENES_FISCALES, USOS_CFDI, CURRENCIES } from '../catalogs.js';
 
 let clientsSearch = '';
@@ -53,14 +53,14 @@ export function renderClients(container, params = {}) {
               <div class="cell-with-avatar">
                 <div class="avatar avatar--sm">${(c.name || '?')[0].toUpperCase()}</div>
                 <div>
-                  <div class="cell-primary">${c.name}</div>
-                  <div class="cell-secondary">${c.address || ''}</div>
+                  <div class="cell-primary">${escapeHTML(c.name || '')}</div>
+                  <div class="cell-secondary">${escapeHTML(c.address || '')}</div>
                 </div>
               </div>
             </td>
-            <td><span class="mono">${c.rfc || '—'}</span></td>
-            <td>${c.email || '—'}</td>
-            <td>${c.phone || '—'}</td>
+            <td><span class="mono">${escapeHTML(c.rfc || '—')}</span></td>
+            <td>${escapeHTML(c.email || '—')}</td>
+            <td>${escapeHTML(c.phone || '—')}</td>
             <td><span class="text-xs">${REGIMENES_FISCALES.find(r => r.clave === c.regimenFiscal)?.descripcion?.slice(0, 30) || c.regimenFiscal || '—'}</span></td>
             <td class="text-center">
               <div class="action-buttons">
@@ -149,11 +149,11 @@ function renderClientForm(container, id) {
           <div class="form-row form-row--2">
             <div class="form-group">
               <label class="form-label required">${t('cli_name')}</label>
-              <input class="form-control" id="c-name" value="${c.name || ''}" placeholder="Mi Empresa S.A. de C.V.">
+              <input class="form-control" id="c-name" value="${escapeHTML(c.name || '')}" placeholder="Mi Empresa S.A. de C.V.">
             </div>
             <div class="form-group">
               <label class="form-label required">${t('cli_rfc')}</label>
-              <input class="form-control mono" id="c-rfc" value="${c.rfc || ''}" placeholder="XAXX010101000" maxlength="13">
+              <input class="form-control mono" id="c-rfc" value="${escapeHTML(c.rfc || '')}" placeholder="XAXX010101000" maxlength="13">
             </div>
           </div>
           <div class="form-row form-row--2">
@@ -174,16 +174,16 @@ function renderClientForm(container, id) {
           <div class="form-row form-row--2">
             <div class="form-group">
               <label class="form-label">${t('cli_email')}</label>
-              <input class="form-control" id="c-email" type="email" value="${c.email || ''}">
+              <input class="form-control" id="c-email" type="email" value="${escapeHTML(c.email || '')}">
             </div>
             <div class="form-group">
               <label class="form-label">${t('cli_phone')}</label>
-              <input class="form-control" id="c-phone" value="${c.phone || ''}">
+              <input class="form-control" id="c-phone" value="${escapeHTML(c.phone || '')}">
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">${t('cli_address')}</label>
-            <input class="form-control" id="c-address" value="${c.address || ''}" placeholder="Av. Reforma 123, Col. Centro, CDMX, CP 06000">
+            <input class="form-control" id="c-address" value="${escapeHTML(c.address || '')}" placeholder="Av. Reforma 123, Col. Centro, CDMX, CP 06000">
           </div>
           <div class="form-row form-row--2">
             <div class="form-group">
@@ -194,7 +194,7 @@ function renderClientForm(container, id) {
             </div>
             <div class="form-group">
               <label class="form-label">Código postal fiscal</label>
-              <input class="form-control" id="c-cp" value="${c.cp || ''}" maxlength="5">
+              <input class="form-control" id="c-cp" value="${escapeHTML(c.cp || '')}" maxlength="5">
             </div>
           </div>
         </div>
@@ -221,7 +221,7 @@ function renderClientForm(container, id) {
                 </tr></thead>
                 <tbody>
                   ${clientQuots.map(q => `<tr>
-                    <td><span class="mono">${q.folio || ''}</span></td>
+                    <td><span class="mono">${escapeHTML(q.folio || '')}</span></td>
                     <td>${formatDate(q.date)}</td>
                     <td>${formatCurrency(q.total, q.currency)}</td>
                     <td>${getStatus(q.status)}</td>
