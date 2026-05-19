@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es" data-theme="dark">
 <head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src https://*.supabase.co; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none';">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CotizaPro — Sistema de Cotizaciones y Facturación</title>
@@ -11,16 +12,24 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <!-- Icons -->
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://unpkg.com/lucide@1.16.0/dist/umd/lucide.min.js"
+          integrity="sha384-ZgnJ3Zpr70Xoify35DjOZWqHib1iYJBpYpQUIEpDASG9+fJ745WzNQuC004dwU0W"
+          crossorigin="anonymous"></script>
 
   <!-- Charts -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+          integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g"
+          crossorigin="anonymous"></script>
 
   <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.106.0/dist/umd/supabase.min.js"
+          integrity="sha384-zfshMiFERdyezN/WZXzHe9g53pOZCrLPBj/qC0ohHnxQ20c3zXwFqbtRAwvZMacA"
+          crossorigin="anonymous"></script>
 
   <!-- html2pdf (client-side PDF generation) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
+          integrity="sha384-Yv5O+t3uE3hunW8uyrbpPW3iw6/5/Y7HitWJBLgqfMoA36NogMmy+8wWZMpn3HWc"
+          crossorigin="anonymous"></script>
 
   <!-- Styles -->
   <link rel="stylesheet" href="css/styles.css">
@@ -77,27 +86,6 @@
 
 <script src="js/bundle.js"></script>
 
-<script>
-  // Re-run Lucide on mutations for dynamic icon rendering
-  const iconObserver = new MutationObserver(() => {
-    if (window.lucide) {
-      const newIcons = document.querySelectorAll('i[data-lucide]:not([data-rendered])');
-      if (newIcons.length) {
-        newIcons.forEach(el => el.setAttribute('data-rendered', '1'));
-        lucide.createIcons({ nodes: [...newIcons].map(el => el.parentElement).filter(Boolean) });
-      }
-    }
-  });
-  iconObserver.observe(document.body, { childList: true, subtree: true });
-
-  // Mobile overlay
-  document.addEventListener('click', e => {
-    const sidebar = document.getElementById('sidebar');
-    const btn = document.getElementById('mobile-menu-btn');
-    if (sidebar?.classList.contains('sidebar--open') && !sidebar.contains(e.target) && e.target !== btn && !btn?.contains(e.target)) {
-      sidebar.classList.remove('sidebar--open');
-    }
-  });
-</script>
+<script src="js/init.js"></script>
 </body>
 </html>
