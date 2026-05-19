@@ -261,6 +261,85 @@ export function renderSettings(container) {
         </div>
       </div>
 
+      <!-- Card: Seguimiento automático -->
+      <div class="card">
+        <div class="card__header">
+          <span class="card__title"><i data-lucide="bell"></i> Seguimiento automático</span>
+        </div>
+        <div class="card__body">
+          <p class="text-sm text-muted mb-3">El sistema te notifica cuando una cotización lleva tiempo sin respuesta.</p>
+
+          <div class="reminder-toggle-row">
+            <div>
+              <div class="form-label">Sin abrir</div>
+              <div class="text-xs text-muted">El cliente no abrió el link</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <input type="number" class="form-control form-control--xs" id="rem-noopen-days"
+                value="${settings.reminders?.noOpen?.days ?? 3}" min="1" max="30" style="width:60px">
+              <span class="text-sm">días</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="rem-noopen-enabled" ${settings.reminders?.noOpen?.enabled !== false ? 'checked' : ''}>
+                <span class="toggle-switch__slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="reminder-toggle-row">
+            <div>
+              <div class="form-label">Vista sin respuesta</div>
+              <div class="text-xs text-muted">El cliente abrió pero no respondió</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <input type="number" class="form-control form-control--xs" id="rem-noreply-days"
+                value="${settings.reminders?.noReply?.days ?? 2}" min="1" max="30" style="width:60px">
+              <span class="text-sm">días</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="rem-noreply-enabled" ${settings.reminders?.noReply?.enabled !== false ? 'checked' : ''}>
+                <span class="toggle-switch__slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="reminder-toggle-row">
+            <div>
+              <div class="form-label">Próxima a vencer</div>
+              <div class="text-xs text-muted">Alerta antes de que expire</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <input type="number" class="form-control form-control--xs" id="rem-expiring-days"
+                value="${settings.reminders?.expiring?.days ?? 2}" min="1" max="14" style="width:60px">
+              <span class="text-sm">días</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="rem-expiring-enabled" ${settings.reminders?.expiring?.enabled ? 'checked' : ''}>
+                <span class="toggle-switch__slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <hr style="margin:20px 0;border-color:var(--border)">
+
+          <div class="form-label" style="margin-bottom:8px">Modo de aprobación del portal</div>
+          <select class="form-control" id="s-approval-mode" style="max-width:300px">
+            <option value="click"     ${(settings.approvalMode||'click') === 'click'     ? 'selected' : ''}>Solo click (Aprobar / Rechazar)</option>
+            <option value="comments"  ${(settings.approvalMode||'click') === 'comments'  ? 'selected' : ''}>Con comentarios</option>
+            <option value="signature" ${(settings.approvalMode||'click') === 'signature' ? 'selected' : ''}>Con firma (nombre + fecha)</option>
+          </select>
+
+          <div class="form-group mt-3" style="max-width:300px">
+            <label class="form-label">Color del portal</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="color" id="s-portal-color" value="${settings.portalHeaderColor || '#6366f1'}" style="width:48px;height:36px;border:none;background:none;cursor:pointer">
+              <input class="form-control" id="s-portal-color-hex" value="${settings.portalHeaderColor || '#6366f1'}" maxlength="7" style="max-width:100px;font-family:monospace">
+            </div>
+          </div>
+
+          <button class="btn btn--primary mt-3" id="save-reminders">
+            <i data-lucide="save"></i> Guardar seguimiento
+          </button>
+        </div>
+      </div>
+
       <!-- Danger Zone -->
       <div class="card card--danger">
         <div class="card__header"><span class="card__title"><i data-lucide="alert-triangle"></i> Zona peligrosa</span></div>
@@ -276,6 +355,35 @@ export function renderSettings(container) {
     </div>`;
 
   if (window.lucide) lucide.createIcons({ nodes: [container] });
+
+  // Save reminders settings
+  container.querySelector('#save-reminders')?.addEventListener('click', () => {
+    const s = Store.getSettings();
+    Store.saveSettings({
+      ...s,
+      approvalMode: container.querySelector('#s-approval-mode')?.value || 'click',
+      portalHeaderColor: container.querySelector('#s-portal-color')?.value || '#6366f1',
+      reminders: {
+        noOpen:   { enabled: container.querySelector('#rem-noopen-enabled')?.checked ?? true,   days: parseInt(container.querySelector('#rem-noopen-days')?.value)   || 3 },
+        noReply:  { enabled: container.querySelector('#rem-noreply-enabled')?.checked ?? true,  days: parseInt(container.querySelector('#rem-noreply-days')?.value)  || 2 },
+        expiring: { enabled: container.querySelector('#rem-expiring-enabled')?.checked ?? false, days: parseInt(container.querySelector('#rem-expiring-days')?.value) || 2 },
+      },
+    });
+    showToast('Configuración de seguimiento guardada');
+  });
+
+  // Sync color picker ↔ hex input
+  container.querySelector('#s-portal-color')?.addEventListener('input', e => {
+    const hex = container.querySelector('#s-portal-color-hex');
+    if (hex) hex.value = e.target.value;
+  });
+  container.querySelector('#s-portal-color-hex')?.addEventListener('input', e => {
+    const val = e.target.value;
+    if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+      const picker = container.querySelector('#s-portal-color');
+      if (picker) picker.value = val;
+    }
+  });
 
   // Logo upload
   container.querySelector('#logo-file')?.addEventListener('change', e => {

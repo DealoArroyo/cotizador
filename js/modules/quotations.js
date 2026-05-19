@@ -24,7 +24,39 @@ export function renderQuotations(container, params = {}) {
   const statuses = ['draft', 'sent', 'approved', 'rejected', 'invoiced'];
   const viewMode = Store.getSettings().quotationsView || 'kanban';
 
+  // Compute pending reminders for display (without marking them sent)
+  const pendingReminders = (() => {
+    const s = Store.getSettings();
+    const rem = s.reminders || {};
+    const MS = 86400000;
+    const now = Date.now();
+    return Store.getQuotations()
+      .filter(q => q.status === 'sent')
+      .filter(q => {
+        const rs = q.reminderSent || {};
+        const ref = q.sentAt || q.date;
+        if (rem.noOpen?.enabled && !q.viewedAt && !rs.noOpen && ref)
+          if ((now - new Date(ref).getTime()) / MS >= rem.noOpen.days) return true;
+        if (rem.noReply?.enabled && q.viewedAt && !rs.noReply)
+          if ((now - new Date(q.viewedAt).getTime()) / MS >= rem.noReply.days) return true;
+        return false;
+      });
+  })();
+
+  const bannerHTML = pendingReminders.length ? `
+  <div class="reminder-banner" id="reminder-banner">
+    <i data-lucide="bell"></i>
+    <span><strong>${pendingReminders.length} cotización${pendingReminders.length > 1 ? 'es necesitan' : ' necesita'} seguimiento</strong> —
+      ${pendingReminders.slice(0,2).map(q => {
+        const c = Store.getClients().find(x => x.id === q.clientId);
+        return c?.name || q.folio;
+      }).join(' · ')}${pendingReminders.length > 2 ? ` · y ${pendingReminders.length - 2} más` : ''}
+    </span>
+    <button class="btn btn--ghost btn--xs" id="dismiss-reminder"><i data-lucide="x"></i></button>
+  </div>` : '';
+
   container.innerHTML = `
+    ${bannerHTML}
     <div class="page-header">
       <h1 class="page-title">${t('quot_title')}</h1>
       <div class="page-actions">
@@ -99,6 +131,10 @@ export function renderQuotations(container, params = {}) {
     </div>`}`;
 
   if (window.lucide) lucide.createIcons({ nodes: [container] });
+
+  container.querySelector('#dismiss-reminder')?.addEventListener('click', () => {
+    container.querySelector('#reminder-banner')?.remove();
+  });
 
   if (viewMode === 'kanban') {
     const kc = container.querySelector('#kanban-container');
