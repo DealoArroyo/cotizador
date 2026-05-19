@@ -126,7 +126,7 @@ export function renderQuotations(container, params = {}) {
             const expired = q.validUntil && q.validUntil < today() && q.status === 'sent';
             return `<tr>
               <td><span class="mono link-cell" data-action="view" data-id="${q.id}">${escapeHTML(q.folio)}</span></td>
-              <td>${escapeHTML(client?.name) || '—'}</td>
+              <td>${escapeHTML(client?.name || '—')}</td>
               <td>${formatDate(q.date)}</td>
               <td class="${expired ? 'text-danger' : ''}">${formatDate(q.validUntil)}</td>
               <td>${formatCurrency(q.total, q.currency)}</td>
@@ -788,7 +788,7 @@ function buildDocumentPreview(q, client, company, settings) {
           ${company.logo ? `<img src="${company.logo}" class="doc-logo">` : `<div class="doc-logo-placeholder">${(company.name || 'E')[0]}</div>`}
           <div class="doc-company-info">
             <h2>${escapeHTML(company.name) || 'Mi Empresa'}</h2>
-            <p>RFC: ${escapeHTML(company.rfc) || '—'}</p>
+            <p>RFC: ${escapeHTML(company.rfc || '—')}</p>
             <p>${escapeHTML(company.domicilioFiscal) || ''}</p>
             <p>${escapeHTML(company.email) || ''} ${company.telefono ? '· ' + escapeHTML(company.telefono) : ''}</p>
           </div>
@@ -806,8 +806,8 @@ function buildDocumentPreview(q, client, company, settings) {
 
       <div class="doc-client">
         <div class="doc-section-label">CLIENTE</div>
-        <h3>${escapeHTML(client?.name) || '—'}</h3>
-        <p>RFC: ${escapeHTML(client?.rfc) || '—'}</p>
+        <h3>${escapeHTML(client?.name || '—')}</h3>
+        <p>RFC: ${escapeHTML(client?.rfc || '—')}</p>
         <p>${escapeHTML(client?.address) || ''}</p>
         <p>${escapeHTML(client?.email) || ''}</p>
       </div>
