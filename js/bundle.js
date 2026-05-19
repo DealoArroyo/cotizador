@@ -322,7 +322,6 @@ const Auth = {
     let overlay = document.getElementById('auth-overlay');
     if (overlay) overlay.remove();
 
-    const cfg = SupabaseClient.getConfig();
     overlay = document.createElement('div');
     overlay.id = 'auth-overlay';
     overlay.className = 'auth-overlay';
@@ -372,28 +371,6 @@ const Auth = {
             <i data-lucide="user-plus"></i> Crear cuenta
           </button>
         </div>
-
-        <details class="auth-config-details" ${cfg.url ? '' : 'open'}>
-          <summary><i data-lucide="settings"></i> Configuración de Supabase</summary>
-          <div class="auth-config-body">
-            <p class="text-xs text-muted" style="margin-bottom:10px">
-              Ingresa las credenciales de tu proyecto Supabase.<br>
-              Las encuentras en <strong>Settings → API</strong> dentro de tu proyecto.
-            </p>
-            <div class="form-group">
-              <label class="form-label">Project URL</label>
-              <input class="form-control" id="auth-sb-url" type="url" placeholder="https://xxxx.supabase.co" value="${cfg.url}">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Anon / Public key</label>
-              <input class="form-control" id="auth-sb-key" type="password" placeholder="eyJ..." value="${cfg.anonKey}">
-            </div>
-            <button class="btn btn--secondary btn--sm auth-btn" id="auth-save-config">
-              <i data-lucide="save"></i> Guardar configuración
-            </button>
-            <div id="auth-config-msg" class="auth-error hidden" style="margin-top:8px"></div>
-          </div>
-        </details>
       </div>`;
 
     document.body.appendChild(overlay);
@@ -407,22 +384,6 @@ const Auth = {
         overlay.querySelectorAll('.auth-form').forEach(f => f.classList.add('hidden'));
         overlay.querySelector(`#auth-${tab.dataset.tab}`).classList.remove('hidden');
       });
-    });
-
-    // Save Supabase config
-    overlay.querySelector('#auth-save-config').addEventListener('click', () => {
-      const url = overlay.querySelector('#auth-sb-url').value.trim();
-      const key = overlay.querySelector('#auth-sb-key').value.trim();
-      const msgEl = overlay.querySelector('#auth-config-msg');
-      if (!url || !key) {
-        msgEl.textContent = 'Ingresa URL y anon key.';
-        msgEl.classList.remove('hidden');
-        return;
-      }
-      SupabaseClient.saveConfig(url, key);
-      msgEl.textContent = '✓ Configuración guardada. Ahora puedes iniciar sesión.';
-      msgEl.classList.remove('hidden');
-      msgEl.style.color = 'var(--success)';
     });
 
     // Login
@@ -439,7 +400,7 @@ const Auth = {
     const client = SupabaseClient.get();
     const errEl = overlay.querySelector('#auth-login-error');
     if (!client) {
-      errEl.textContent = 'Primero configura tu proyecto Supabase (ver "Configuración" abajo).';
+      errEl.textContent = 'Error de conexión con el servidor. Intenta de nuevo.';
       errEl.classList.remove('hidden');
       return;
     }
@@ -4396,19 +4357,6 @@ function renderSettings(container) {
     ? `<div class="alert alert--success" style="margin-bottom:16px"><i data-lucide="check-circle-2"></i> <span>EmailJS configurado — envío de correos activo.</span></div>`
     : `<div class="alert alert--info" style="margin-bottom:16px"><i data-lucide="info"></i> <span>Configura EmailJS para enviar cotizaciones por correo. Gratis hasta 200 correos/mes en <strong>emailjs.com</strong></span></div>`;
 
-  // Supabase status — compute before template literal to avoid IIFE-in-backtick issues
-  const _sbCfg = SupabaseClient.getConfig();
-  const _sbUser = Auth.getCurrentUser();
-  const _sbConfigured = SupabaseClient.isConfigured();
-  const _sbStatusBadge = _sbConfigured && _sbUser
-    ? `<div class="alert alert--success" style="margin-bottom:16px"><i data-lucide="check-circle-2"></i> <span>Conectado como <strong>${_sbUser.email}</strong></span></div>`
-    : _sbConfigured
-    ? `<div class="alert alert--warning" style="margin-bottom:16px"><i data-lucide="alert-circle"></i> <span>Supabase configurado — sin sesión activa.</span></div>`
-    : `<div class="alert alert--info" style="margin-bottom:16px"><i data-lucide="info"></i> <span>Configura Supabase para sincronizar tus datos entre dispositivos.</span></div>`;
-  const _sbSyncBtn = _sbConfigured && _sbUser
-    ? `<button class="btn btn--ghost btn--sm" id="sb-sync-now"><i data-lucide="refresh-cw"></i> Sincronizar ahora</button>`
-    : '';
-
   container.innerHTML = `
     <div class="page-header">
       <h1 class="page-title">${t('set_title')}</h1>
@@ -4615,28 +4563,6 @@ function renderSettings(container) {
               <textarea class="form-control" style="font-size:11px;font-family:monospace;height:160px" readonly id="ejs-template-html"></textarea>
             </div>
           </details>
-        </div>
-      </div>
-
-      <!-- Supabase Cloud Sync -->
-      <div class="card" id="supabase-card">
-        <div class="card__header"><span class="card__title"><i data-lucide="cloud"></i> Sincronización en la nube (Supabase)</span></div>
-        <div class="card__body">
-          ${_sbStatusBadge}
-          <div class="form-row form-row--2">
-            <div class="form-group">
-              <label class="form-label">Project URL</label>
-              <input class="form-control" id="sb-url" type="url" placeholder="https://xxxx.supabase.co" value="${_sbCfg.url}">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Anon / Public key</label>
-              <input class="form-control" id="sb-key" type="password" placeholder="eyJ..." value="${_sbCfg.anonKey}">
-            </div>
-          </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn btn--secondary btn--sm" id="sb-save-cfg"><i data-lucide="save"></i> Guardar configuración</button>
-            ${_sbSyncBtn}
-          </div>
         </div>
       </div>
 
@@ -4945,31 +4871,6 @@ function renderSettings(container) {
     showToast('Configuración de EmailJS guardada ✓');
   });
 
-  // Supabase config save
-  container.querySelector('#sb-save-cfg')?.addEventListener('click', () => {
-    const url = container.querySelector('#sb-url')?.value.trim();
-    const key = container.querySelector('#sb-key')?.value.trim();
-    if (!url || !key) { showToast('Ingresa URL y anon key', 'error'); return; }
-    SupabaseClient.saveConfig(url, key);
-    showToast('Configuración de Supabase guardada. Recargando...');
-    setTimeout(() => location.reload(), 1200);
-  });
-
-  // Sync now
-  container.querySelector('#sb-sync-now')?.addEventListener('click', async () => {
-    const client = SupabaseClient.get();
-    const user = Auth.getCurrentUser();
-    if (!client || !user) { showToast('No hay sesión activa', 'error'); return; }
-    const btn = container.querySelector('#sb-sync-now');
-    btn.disabled = true;
-    btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Sincronizando...';
-    if (window.lucide) lucide.createIcons({ nodes: [btn] });
-    await Store.pushToSupabase(client, user.id);
-    btn.disabled = false;
-    btn.innerHTML = '<i data-lucide="refresh-cw"></i> Sincronizar ahora';
-    if (window.lucide) lucide.createIcons({ nodes: [btn] });
-    showToast('Datos sincronizados con Supabase');
-  });
 }
 
 
@@ -5207,11 +5108,6 @@ async function init() {
   const settings = Store.getSettings();
   document.documentElement.setAttribute('data-theme', settings.theme || 'dark');
   I18n.setLang(settings.lang || 'es');
-
-  if (!SupabaseClient.isConfigured()) {
-    Auth.showScreen(bootWithSession);
-    return;
-  }
 
   const session = await Auth.getSession();
   if (!session) {
