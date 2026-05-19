@@ -672,7 +672,6 @@ function renderQuotationView(container, id) {
       <div class="page-actions">
         ${actions.map(a => `<button class="btn btn--${a.style}" data-action="${a.action}"><i data-lucide="${a.icon}"></i> ${a.label}</button>`).join('')}
         <button class="btn btn--ghost btn--sm" id="btn-whatsapp" title="Compartir por WhatsApp"><i data-lucide="message-circle"></i> WhatsApp</button>
-        <button class="btn btn--ghost btn--sm" id="btn-email" title="Enviar por correo"><i data-lucide="mail"></i> Correo</button>
         <button class="btn btn--ghost btn--sm" id="print-quot"><i data-lucide="printer"></i> ${t('btn_print')}</button>
         ${q.status === 'draft' || q.status === 'sent' ? `
           <button class="btn btn--primary" id="send-link-btn">
@@ -730,7 +729,6 @@ function renderQuotationView(container, id) {
   container.querySelector('#back-quot')?.addEventListener('click', () => window.App?.navigate('quotations'));
   container.querySelector('#print-quot')?.addEventListener('click', () => printDocumentFromHtml(buildDocumentPreview(q, client, company, settings), q.folio));
   container.querySelector('#btn-whatsapp')?.addEventListener('click', () => sendWhatsApp(q, client, company, settings));
-  container.querySelector('#btn-email')?.addEventListener('click', () => sendEmail(q, client, company, settings));
   container.querySelector('#send-link-btn')?.addEventListener('click', () => {
     sendPublicLink(q, container, {});
   });
@@ -1052,75 +1050,6 @@ async function sendWhatsApp(q, client, company, settings) {
       console.error('WhatsApp PDF error:', err);
       showToast('Error al generar PDF: ' + err.message, 'error');
     }
-  } finally {
-    _resetBtn(btn);
-  }
-}
-
-// ─── EMAIL (EmailJS) ───────────────────────────────────────────────────────────
-async function sendEmail(q, client, company, settings) {
-  if (!client?.email) {
-    showToast('Este cliente no tiene correo registrado. Agrégalo en Clientes.', 'error');
-    return;
-  }
-  const ejsCfg = {
-    publicKey: localStorage.getItem('cot_emailjs_public_key') || '',
-    serviceId:  localStorage.getItem('cot_emailjs_service_id') || '',
-    templateId: localStorage.getItem('cot_emailjs_template_id') || '',
-  };
-  if (!ejsCfg.publicKey || !ejsCfg.serviceId || !ejsCfg.templateId) {
-    showToast('Configura EmailJS en Configuración → Envío de correos.', 'error');
-    window.App?.navigate('settings');
-    return;
-  }
-  if (!window.emailjs) { showToast('EmailJS no está cargado.', 'error'); return; }
-
-  const btn = document.getElementById('btn-email');
-  _setBtnLoading(btn, 'Generando PDF...');
-  try {
-    // 1. Generate PDF
-    const blob = await _generatePDFBlob(q, client, company, settings);
-    const filename = `Cotizacion_${q.folio}.pdf`;
-
-
-    const conceptos = (q.items || []).map(item => {
-      const base = (item.qty || 0) * (item.unitPrice || 0);
-      const disc = base * ((item.discount || 0) / 100);
-      const total = (base - disc) * (1 + (item.taxRate || 0) / 100);
-      return `${item.description || 'Concepto'} (x${item.qty}) — $${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
-    }).join('\n');
-
-    _setBtnLoading(btn, 'Enviando correo...');
-    if (window.lucide) lucide.createIcons({ nodes: [btn] });
-
-    emailjs.init({ publicKey: ejsCfg.publicKey });
-    await emailjs.send(ejsCfg.serviceId, ejsCfg.templateId, {
-      to_email:       client.email,
-      to_name:        client.name || '',
-      from_name:      company.name || 'CotizaPro',
-      reply_to:       company.email || '',
-      folio:          q.folio,
-      fecha:          formatDate(q.date),
-      valida_hasta:   formatDate(q.validUntil),
-      total:          formatCurrency(q.total, q.currency),
-      moneda:         q.currency,
-      conceptos,
-      notas:          q.notes || '',
-      terminos:       q.terms || '',
-      empresa_nombre: company.name || '',
-      empresa_rfc:    company.rfc || '',
-      empresa_email:  company.email || '',
-      empresa_tel:    company.telefono || '',
-    });
-
-    // Download PDF locally — user can forward the email with the PDF attached
-    _downloadBlob(blob, filename);
-    _markSentHistory(q, `Correo enviado a ${client.email}`);
-    showToast(`Correo enviado a ${client.email} ✓ · PDF descargado para adjuntar`);
-
-  } catch (err) {
-    console.error('Email PDF error:', err);
-    showToast('Error: ' + (err?.text || err?.message || 'revisa la configuración de EmailJS'), 'error');
   } finally {
     _resetBtn(btn);
   }
