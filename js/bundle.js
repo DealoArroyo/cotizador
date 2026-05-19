@@ -1143,6 +1143,16 @@ function escapeXml(str) {
     .replace(/'/g, '&apos;');
 }
 
+function escapeHTML(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function generateCFDIXml(invoice, company) {
   const esc = escapeXml;
   const items = invoice.items || [];
@@ -1526,7 +1536,7 @@ function drawStatusChart(data) {
 // ── js/modules/clients.js ──────────────
 // import Store from '../store.js';
 // import I18n from '../i18n.js';
-// import { uid, showToast, confirmDialog, exportCSV, importCSV, debounce, formatDate, formatCurrency } from '../utils.js';
+// import { uid, showToast, confirmDialog, exportCSV, importCSV, debounce, formatDate, formatCurrency, escapeHTML } from '../utils.js';
 // import { REGIMENES_FISCALES, USOS_CFDI, CURRENCIES } from '../catalogs.js';
 
 let clientsSearch = '';
@@ -1579,14 +1589,14 @@ function renderClients(container, params = {}) {
               <div class="cell-with-avatar">
                 <div class="avatar avatar--sm">${(c.name || '?')[0].toUpperCase()}</div>
                 <div>
-                  <div class="cell-primary">${c.name}</div>
-                  <div class="cell-secondary">${c.address || ''}</div>
+                  <div class="cell-primary">${escapeHTML(c.name || '')}</div>
+                  <div class="cell-secondary">${escapeHTML(c.address || '')}</div>
                 </div>
               </div>
             </td>
-            <td><span class="mono">${c.rfc || '—'}</span></td>
-            <td>${c.email || '—'}</td>
-            <td>${c.phone || '—'}</td>
+            <td><span class="mono">${escapeHTML(c.rfc || '—')}</span></td>
+            <td>${escapeHTML(c.email || '—')}</td>
+            <td>${escapeHTML(c.phone || '—')}</td>
             <td><span class="text-xs">${REGIMENES_FISCALES.find(r => r.clave === c.regimenFiscal)?.descripcion?.slice(0, 30) || c.regimenFiscal || '—'}</span></td>
             <td class="text-center">
               <div class="action-buttons">
@@ -1675,11 +1685,11 @@ function renderClientForm(container, id) {
           <div class="form-row form-row--2">
             <div class="form-group">
               <label class="form-label required">${t('cli_name')}</label>
-              <input class="form-control" id="c-name" value="${c.name || ''}" placeholder="Mi Empresa S.A. de C.V.">
+              <input class="form-control" id="c-name" value="${escapeHTML(c.name || '')}" placeholder="Mi Empresa S.A. de C.V.">
             </div>
             <div class="form-group">
               <label class="form-label required">${t('cli_rfc')}</label>
-              <input class="form-control mono" id="c-rfc" value="${c.rfc || ''}" placeholder="XAXX010101000" maxlength="13">
+              <input class="form-control mono" id="c-rfc" value="${escapeHTML(c.rfc || '')}" placeholder="XAXX010101000" maxlength="13">
             </div>
           </div>
           <div class="form-row form-row--2">
@@ -1700,16 +1710,16 @@ function renderClientForm(container, id) {
           <div class="form-row form-row--2">
             <div class="form-group">
               <label class="form-label">${t('cli_email')}</label>
-              <input class="form-control" id="c-email" type="email" value="${c.email || ''}">
+              <input class="form-control" id="c-email" type="email" value="${escapeHTML(c.email || '')}">
             </div>
             <div class="form-group">
               <label class="form-label">${t('cli_phone')}</label>
-              <input class="form-control" id="c-phone" value="${c.phone || ''}">
+              <input class="form-control" id="c-phone" value="${escapeHTML(c.phone || '')}">
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">${t('cli_address')}</label>
-            <input class="form-control" id="c-address" value="${c.address || ''}" placeholder="Av. Reforma 123, Col. Centro, CDMX, CP 06000">
+            <input class="form-control" id="c-address" value="${escapeHTML(c.address || '')}" placeholder="Av. Reforma 123, Col. Centro, CDMX, CP 06000">
           </div>
           <div class="form-row form-row--2">
             <div class="form-group">
@@ -1720,7 +1730,7 @@ function renderClientForm(container, id) {
             </div>
             <div class="form-group">
               <label class="form-label">Código postal fiscal</label>
-              <input class="form-control" id="c-cp" value="${c.cp || ''}" maxlength="5">
+              <input class="form-control" id="c-cp" value="${escapeHTML(c.cp || '')}" maxlength="5">
             </div>
           </div>
         </div>
@@ -1747,7 +1757,7 @@ function renderClientForm(container, id) {
                 </tr></thead>
                 <tbody>
                   ${clientQuots.map(q => `<tr>
-                    <td><span class="mono">${q.folio || ''}</span></td>
+                    <td><span class="mono">${escapeHTML(q.folio || '')}</span></td>
                     <td>${formatDate(q.date)}</td>
                     <td>${formatCurrency(q.total, q.currency)}</td>
                     <td>${getStatus(q.status)}</td>
@@ -1800,7 +1810,7 @@ function renderClientForm(container, id) {
 // ── js/modules/products.js ──────────────
 // import Store from '../store.js';
 // import I18n from '../i18n.js';
-// import { uid, showToast, confirmDialog, exportCSV, debounce } from '../utils.js';
+// import { uid, showToast, confirmDialog, exportCSV, debounce, escapeHTML } from '../utils.js';
 // import { CLAVES_PROD_SERV, CLAVES_UNIDAD, CURRENCIES } from '../catalogs.js';
 
 let prodsSearch = '';
@@ -1836,7 +1846,7 @@ function renderProducts(container, params = {}) {
       </div>
       <select class="form-control form-control--sm" id="cat-filter">
         <option value="">Todas las categorías</option>
-        ${categories.map(c => `<option value="${c}" ${prodsCatFilter === c ? 'selected' : ''}>${c}</option>`).join('')}
+        ${categories.map(c => `<option value="${escapeHTML(c)}" ${prodsCatFilter === c ? 'selected' : ''}>${escapeHTML(c)}</option>`).join('')}
       </select>
       <span class="record-count">${products.length} productos</span>
     </div>
@@ -1845,15 +1855,15 @@ function renderProducts(container, params = {}) {
       ${products.length ? products.map(p => `
         <div class="product-card">
           <div class="product-card__header">
-            <span class="product-code">${p.code || '—'}</span>
-            ${p.category ? `<span class="badge badge--category">${p.category}</span>` : ''}
+            <span class="product-code">${escapeHTML(p.code || '—')}</span>
+            ${p.category ? `<span class="badge badge--category">${escapeHTML(p.category)}</span>` : ''}
           </div>
           <div class="product-card__body">
-            <h3 class="product-name">${p.name}</h3>
-            <p class="product-desc">${p.description || ''}</p>
+            <h3 class="product-name">${escapeHTML(p.name || '')}</h3>
+            <p class="product-desc">${escapeHTML(p.description || '')}</p>
             <div class="product-meta">
-              <span class="product-clave" title="ClaveProdServ"><i data-lucide="tag"></i> ${p.claveProdServ || '—'}</span>
-              <span class="product-unit" title="Unidad"><i data-lucide="ruler"></i> ${p.claveUnidad || '—'} / ${p.unit || ''}</span>
+              <span class="product-clave" title="ClaveProdServ"><i data-lucide="tag"></i> ${escapeHTML(p.claveProdServ || '—')}</span>
+              <span class="product-unit" title="Unidad"><i data-lucide="ruler"></i> ${escapeHTML(p.claveUnidad || '—')} / ${escapeHTML(p.unit || '')}</span>
             </div>
           </div>
           <div class="product-card__footer">
@@ -1923,26 +1933,26 @@ function renderProductForm(container, id) {
           <div class="form-row form-row--2">
             <div class="form-group">
               <label class="form-label">${t('prod_code')}</label>
-              <input class="form-control" id="p-code" value="${p.code || ''}" placeholder="SW-001">
+              <input class="form-control" id="p-code" value="${escapeHTML(p.code || '')}" placeholder="SW-001">
             </div>
             <div class="form-group">
               <label class="form-label">${t('prod_category')}</label>
-              <input class="form-control" id="p-category" value="${p.category || ''}" placeholder="Desarrollo, Consultoría...">
+              <input class="form-control" id="p-category" value="${escapeHTML(p.category || '')}" placeholder="Desarrollo, Consultoría...">
             </div>
           </div>
           <div class="form-group">
             <label class="form-label required">${t('prod_name')}</label>
-            <input class="form-control" id="p-name" value="${p.name || ''}">
+            <input class="form-control" id="p-name" value="${escapeHTML(p.name || '')}">
           </div>
           <div class="form-group">
             <label class="form-label">${t('prod_description')}</label>
-            <textarea class="form-control" id="p-desc" rows="3">${p.description || ''}</textarea>
+            <textarea class="form-control" id="p-desc" rows="3">${escapeHTML(p.description || '')}</textarea>
           </div>
           <div class="form-row form-row--2">
             <div class="form-group">
               <label class="form-label required">${t('prod_clave_prod_serv')}</label>
               <div class="input-with-search">
-                <input class="form-control" id="p-cps" value="${p.claveProdServ || ''}" placeholder="81111501" list="cps-list">
+                <input class="form-control" id="p-cps" value="${escapeHTML(p.claveProdServ || '')}" placeholder="81111501" list="cps-list">
                 <datalist id="cps-list">
                   ${CLAVES_PROD_SERV.map(c => `<option value="${c.clave}">${c.clave} – ${c.descripcion}</option>`).join('')}
                 </datalist>
@@ -1950,7 +1960,7 @@ function renderProductForm(container, id) {
             </div>
             <div class="form-group">
               <label class="form-label required">${t('prod_clave_unidad')}</label>
-              <input class="form-control" id="p-cu" value="${p.claveUnidad || ''}" placeholder="E48" list="cu-list">
+              <input class="form-control" id="p-cu" value="${escapeHTML(p.claveUnidad || '')}" placeholder="E48" list="cu-list">
               <datalist id="cu-list">
                 ${CLAVES_UNIDAD.map(c => `<option value="${c.clave}">${c.clave} – ${c.descripcion}</option>`).join('')}
               </datalist>
@@ -1959,7 +1969,7 @@ function renderProductForm(container, id) {
           <div class="form-row form-row--2">
             <div class="form-group">
               <label class="form-label">${t('prod_unit')}</label>
-              <input class="form-control" id="p-unit" value="${p.unit || 'Servicio'}">
+              <input class="form-control" id="p-unit" value="${escapeHTML(p.unit || 'Servicio')}">
             </div>
             <div class="form-group">
               <label class="form-label">${t('prod_tax_rate')}</label>
@@ -2020,7 +2030,7 @@ function renderProductForm(container, id) {
 // ── js/modules/quotations.js ──────────────
 // import Store from '../store.js';
 // import I18n from '../i18n.js';
-// import { uid, today, addDays, formatDate, calcQuotationTotals, showToast, confirmDialog, exportCSV, debounce, formatCurrency, generatePublicToken } from '../utils.js';
+// import { uid, today, addDays, formatDate, calcQuotationTotals, showToast, confirmDialog, exportCSV, debounce, formatCurrency, generatePublicToken, escapeHTML } from '../utils.js';
 // import { CURRENCIES } from '../catalogs.js';
 // import { renderKanban } from './kanban.js';
 
@@ -2145,8 +2155,8 @@ function renderQuotations(container, params = {}) {
             const client = clients.find(c => c.id === q.clientId);
             const expired = q.validUntil && q.validUntil < today() && q.status === 'sent';
             return `<tr>
-              <td><span class="mono link-cell" data-action="view" data-id="${q.id}">${q.folio}</span></td>
-              <td>${client?.name || '—'}</td>
+              <td><span class="mono link-cell" data-action="view" data-id="${q.id}">${escapeHTML(q.folio)}</span></td>
+              <td>${escapeHTML(client?.name || '—')}</td>
               <td>${formatDate(q.date)}</td>
               <td class="${expired ? 'text-danger' : ''}">${formatDate(q.validUntil)}</td>
               <td>${formatCurrency(q.total, q.currency)}</td>
@@ -2391,7 +2401,7 @@ function renderQuotationForm(container, id, params = {}) {
                 <label class="form-label required">${t('quot_client')}</label>
                 <select class="form-control" id="q-client">
                   <option value="">Seleccionar cliente...</option>
-                  ${clients.map(c => `<option value="${c.id}" ${c.id === (q?.clientId || baseQ?.clientId) ? 'selected' : ''}>${c.name} – ${c.rfc}</option>`).join('')}
+                  ${clients.map(c => `<option value="${c.id}" ${c.id === (q?.clientId || baseQ?.clientId) ? 'selected' : ''}>${escapeHTML(c.name)} – ${escapeHTML(c.rfc)}</option>`).join('')}
                 </select>
                 <div id="client-products-panel" class="client-products-panel" style="display:none">
                   <div class="client-products-panel__title">
@@ -2404,7 +2414,7 @@ function renderQuotationForm(container, id, params = {}) {
                 <label class="form-label">${t('quot_template')}</label>
                 <select class="form-control" id="q-template">
                   <option value="">Sin plantilla</option>
-                  ${templates.map(tp => `<option value="${tp.id}">${tp.name}</option>`).join('')}
+                  ${templates.map(tp => `<option value="${tp.id}">${escapeHTML(tp.name)}</option>`).join('')}
                 </select>
               </div>
             </div>
@@ -2481,7 +2491,7 @@ function renderQuotationForm(container, id, params = {}) {
     panel.style.display = 'block';
     list.innerHTML = suggestions.map((item, i) =>
       `<button class="client-product-chip" data-idx="${i}">
-         ${item.description || item.name || '—'} · ${formatCurrency(item.unitPrice || 0, item.currency || 'MXN')}
+         ${escapeHTML(item.description || item.name || '—')} · ${formatCurrency(item.unitPrice || 0, item.currency || 'MXN')}
        </button>`
     ).join('');
 
@@ -2688,7 +2698,7 @@ function renderQuotationView(container, id) {
   container.innerHTML = `
     <div class="page-header">
       <button class="btn btn--ghost btn--sm" id="back-quot"><i data-lucide="arrow-left"></i> ${t('quot_title')}</button>
-      <h1 class="page-title">${q.folio} <span class="badge badge--${q.status} badge--lg">${t(`status_${q.status}`)}</span></h1>
+      <h1 class="page-title">${escapeHTML(q.folio)} <span class="badge badge--${q.status} badge--lg">${t(`status_${q.status}`)}</span></h1>
       <div class="page-actions">
         ${actions.map(a => `<button class="btn btn--${a.style}" data-action="${a.action}"><i data-lucide="${a.icon}"></i> ${a.label}</button>`).join('')}
         <button class="btn btn--ghost btn--sm" id="btn-whatsapp" title="Compartir por WhatsApp"><i data-lucide="message-circle"></i> WhatsApp</button>
@@ -2718,7 +2728,7 @@ function renderQuotationView(container, id) {
           <div class="card__header"><span class="card__title"><i data-lucide="info"></i> Resumen</span></div>
           <div class="card__body">
             <dl class="info-list">
-              <dt>Folio</dt><dd class="mono">${q.folio}</dd>
+              <dt>Folio</dt><dd class="mono">${escapeHTML(q.folio)}</dd>
               <dt>Fecha</dt><dd>${formatDate(q.date)}</dd>
               <dt>Válida hasta</dt><dd>${formatDate(q.validUntil)}</dd>
               <dt>Moneda</dt><dd>${q.currency}</dd>
@@ -2734,7 +2744,7 @@ function renderQuotationView(container, id) {
                 <div class="timeline-item">
                   <div class="timeline-dot"></div>
                   <div class="timeline-content">
-                    <p class="timeline-event">${h.event}</p>
+                    <p class="timeline-event">${escapeHTML(h.event)}</p>
                     <span class="timeline-date">${new Date(h.date).toLocaleString('es-MX')}</span>
                   </div>
                 </div>`).join('') || '<p class="text-muted p-4">Sin historial</p>'}
@@ -2807,16 +2817,16 @@ function buildDocumentPreview(q, client, company, settings) {
         <div class="doc-company">
           ${company.logo ? `<img src="${company.logo}" class="doc-logo">` : `<div class="doc-logo-placeholder">${(company.name || 'E')[0]}</div>`}
           <div class="doc-company-info">
-            <h2>${company.name || 'Mi Empresa'}</h2>
-            <p>RFC: ${company.rfc || '—'}</p>
-            <p>${company.domicilioFiscal || ''}</p>
-            <p>${company.email || ''} ${company.telefono ? '· ' + company.telefono : ''}</p>
+            <h2>${escapeHTML(company.name || 'Mi Empresa')}</h2>
+            <p>RFC: ${escapeHTML(company.rfc || '—')}</p>
+            <p>${escapeHTML(company.domicilioFiscal || '')}</p>
+            <p>${escapeHTML(company.email || '')} ${company.telefono ? '· ' + escapeHTML(company.telefono) : ''}</p>
           </div>
         </div>
         <div class="doc-meta">
           <h1 class="doc-type">COTIZACIÓN</h1>
           <table class="doc-meta-table">
-            <tr><td>Folio:</td><td class="mono">${q.folio}</td></tr>
+            <tr><td>Folio:</td><td class="mono">${escapeHTML(q.folio)}</td></tr>
             <tr><td>Fecha:</td><td>${formatDate(q.date)}</td></tr>
             <tr><td>Válida hasta:</td><td>${formatDate(q.validUntil)}</td></tr>
             <tr><td>Moneda:</td><td>${q.currency}</td></tr>
@@ -2826,10 +2836,10 @@ function buildDocumentPreview(q, client, company, settings) {
 
       <div class="doc-client">
         <div class="doc-section-label">CLIENTE</div>
-        <h3>${client?.name || '—'}</h3>
-        <p>RFC: ${client?.rfc || '—'}</p>
-        <p>${client?.address || ''}</p>
-        <p>${client?.email || ''}</p>
+        <h3>${escapeHTML(client?.name || '—')}</h3>
+        <p>RFC: ${escapeHTML(client?.rfc || '—')}</p>
+        <p>${escapeHTML(client?.address || '')}</p>
+        <p>${escapeHTML(client?.email || '')}</p>
       </div>
 
       <table class="doc-items">
@@ -2844,7 +2854,7 @@ function buildDocumentPreview(q, client, company, settings) {
             const total = base - disc + taxAmt;
             return `<tr>
               <td>${i + 1}</td>
-              <td>${item.description || ''}</td>
+              <td>${escapeHTML(item.description || '')}</td>
               <td class="text-right">${item.qty}</td>
               <td class="text-right">$${(item.unitPrice || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
               <td class="text-right">${item.discount || 0}%</td>
@@ -2862,10 +2872,10 @@ function buildDocumentPreview(q, client, company, settings) {
         <div class="doc-totals-row doc-totals-row--grand"><span>Total</span><span>$${(q.total || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })} ${q.currency}</span></div>
       </div>
 
-      ${q.notes ? `<div class="doc-notes"><div class="doc-section-label">NOTAS</div><p>${q.notes}</p></div>` : ''}
-      ${q.terms ? `<div class="doc-terms"><div class="doc-section-label">TÉRMINOS Y CONDICIONES</div><p>${q.terms}</p></div>` : ''}
+      ${q.notes ? `<div class="doc-notes"><div class="doc-section-label">NOTAS</div><p>${escapeHTML(q.notes)}</p></div>` : ''}
+      ${q.terms ? `<div class="doc-terms"><div class="doc-section-label">TÉRMINOS Y CONDICIONES</div><p>${escapeHTML(q.terms)}</p></div>` : ''}
 
-      ${company.cuenta ? `<div class="doc-payment"><div class="doc-section-label">DATOS DE PAGO</div><p>${company.banco ? company.banco + ' · ' : ''}${company.cuenta}</p></div>` : ''}
+      ${company.cuenta ? `<div class="doc-payment"><div class="doc-section-label">DATOS DE PAGO</div><p>${company.banco ? escapeHTML(company.banco) + ' · ' : ''}${escapeHTML(company.cuenta)}</p></div>` : ''}
 
       <div class="doc-footer">
         <p>Documento generado el ${new Date().toLocaleString('es-MX')}</p>
@@ -3081,7 +3091,7 @@ async function sendWhatsApp(q, client, company, settings) {
 // ── js/modules/invoices.js ──────────────
 // import Store from '../store.js';
 // import I18n from '../i18n.js';
-// import { uid, today, formatDate, calcQuotationTotals, showToast, confirmDialog, generateUUID, generateSello, generateNoCertificado, generateCadenaOriginal, generateQRData, generateCFDIXml, downloadFile, formatCurrency, debounce } from '../utils.js';
+// import { uid, today, formatDate, calcQuotationTotals, showToast, confirmDialog, generateUUID, generateSello, generateNoCertificado, generateCadenaOriginal, generateQRData, generateCFDIXml, downloadFile, formatCurrency, debounce, escapeHTML } from '../utils.js';
 // import { REGIMENES_FISCALES, USOS_CFDI, METODOS_PAGO, FORMAS_PAGO, CURRENCIES, numberToWords } from '../catalogs.js';
 // import { buildDocumentPreview, printDocumentFromHtml } from './quotations.js';
 
@@ -3130,9 +3140,9 @@ function renderInvoices(container, params = {}) {
           ${invoices.map(inv => {
             const client = clients.find(c => c.id === inv.clientId);
             return `<tr>
-              <td><span class="mono link-cell" data-action="view" data-id="${inv.id}">${inv.folio}</span></td>
-              <td><span class="mono text-xs">${inv.uuid ? inv.uuid.slice(0, 8) + '…' : '—'}</span></td>
-              <td>${client?.name || '—'}</td>
+              <td><span class="mono link-cell" data-action="view" data-id="${inv.id}">${escapeHTML(inv.folio || '')}</span></td>
+              <td><span class="mono text-xs">${inv.uuid ? escapeHTML(inv.uuid.slice(0, 8)) + '…' : '—'}</span></td>
+              <td>${escapeHTML(client?.name || '—')}</td>
               <td>${formatDate(inv.date)}</td>
               <td><span class="badge badge--${inv.metodoPago === 'PUE' ? 'approved' : 'sent'}">${inv.metodoPago || '—'}</span></td>
               <td>${formatCurrency(inv.total, inv.currency)}</td>
@@ -3327,10 +3337,10 @@ function renderInvoiceForm(container, id, fromQuotationId) {
           <div class="card__header"><span class="card__title">Emisor</span></div>
           <div class="card__body">
             <dl class="info-list info-list--sm">
-              <dt>Nombre</dt><dd>${company.name || '—'}</dd>
-              <dt>RFC</dt><dd class="mono">${company.rfc || '—'}</dd>
+              <dt>Nombre</dt><dd>${escapeHTML(company.name || '—')}</dd>
+              <dt>RFC</dt><dd class="mono">${escapeHTML(company.rfc || '—')}</dd>
               <dt>Régimen</dt><dd>${REGIMENES_FISCALES.find(r => r.clave === company.regimenFiscal)?.descripcion?.slice(0, 35) || company.regimenFiscal || '—'}</dd>
-              <dt>CP</dt><dd>${company.codigoPostal || '—'}</dd>
+              <dt>CP</dt><dd>${escapeHTML(company.codigoPostal || '—')}</dd>
             </dl>
             ${!company.rfc ? `<div class="alert alert--warning"><i data-lucide="alert-triangle"></i> Configura los datos fiscales de tu empresa en Configuración antes de timbrar.</div>` : ''}
           </div>
@@ -3495,7 +3505,7 @@ function renderInvoiceView(container, id) {
   container.innerHTML = `
     <div class="page-header">
       <button class="btn btn--ghost btn--sm" id="back-inv"><i data-lucide="arrow-left"></i> ${t('inv_title')}</button>
-      <h1 class="page-title">${inv.folio} <span class="badge badge--${inv.status} badge--lg">${t(`status_${inv.status}`)}</span></h1>
+      <h1 class="page-title">${escapeHTML(inv.folio || '')} <span class="badge badge--${inv.status} badge--lg">${t(`status_${inv.status}`)}</span></h1>
       <div class="page-actions">
         ${inv.status === 'draft' ? `<button class="btn btn--primary" data-action="stamp"><i data-lucide="stamp"></i> ${t('inv_stamp')}</button>` : ''}
         ${inv.status === 'stamped' ? `
@@ -3518,12 +3528,12 @@ function renderInvoiceView(container, id) {
           <div class="card__header"><span class="card__title">Datos fiscales</span></div>
           <div class="card__body">
             <dl class="info-list info-list--sm">
-              <dt>UUID</dt><dd class="mono text-xs">${inv.uuid || '—'}</dd>
+              <dt>UUID</dt><dd class="mono text-xs">${escapeHTML(inv.uuid || '—')}</dd>
               <dt>Método de pago</dt><dd>${inv.metodoPago || '—'}</dd>
               <dt>Forma de pago</dt><dd>${FORMAS_PAGO.find(f => f.clave === inv.formaPago)?.descripcion || inv.formaPago || '—'}</dd>
               <dt>Uso CFDI</dt><dd>${USOS_CFDI.find(u => u.clave === inv.usoCFDI)?.descripcion || inv.usoCFDI || '—'}</dd>
-              <dt>RFC emisor</dt><dd class="mono">${company.rfc || '—'}</dd>
-              <dt>RFC receptor</dt><dd class="mono">${inv.clientRfc || client?.rfc || '—'}</dd>
+              <dt>RFC emisor</dt><dd class="mono">${escapeHTML(company.rfc || '—')}</dd>
+              <dt>RFC receptor</dt><dd class="mono">${escapeHTML(inv.clientRfc || client?.rfc || '—')}</dd>
             </dl>
           </div>
         </div>
@@ -3547,7 +3557,7 @@ function renderInvoiceView(container, id) {
         <div class="card">
           <div class="card__header"><span class="card__title">${t('inv_cadena')}</span></div>
           <div class="card__body">
-            <pre class="cadena-text">${inv.cadenaOriginal}</pre>
+            <pre class="cadena-text">${escapeHTML(inv.cadenaOriginal || '')}</pre>
           </div>
         </div>` : ''}
       </div>
@@ -3582,15 +3592,15 @@ function buildCFDIPreview(inv, client, company) {
           <div class="doc-company">
             ${company.logo ? `<img src="${company.logo}" class="doc-logo">` : `<div class="doc-logo-placeholder">${(company.name || 'E')[0]}</div>`}
             <div class="doc-company-info">
-              <h2>${company.name || 'Mi Empresa'}</h2>
-              <p>RFC: ${company.rfc || '—'} · Régimen: ${REGIMENES_FISCALES.find(r => r.clave === company.regimenFiscal)?.descripcion?.slice(0, 40) || company.regimenFiscal || '—'}</p>
-              <p>Lugar de expedición: ${company.codigoPostal || '—'}</p>
+              <h2>${escapeHTML(company.name || 'Mi Empresa')}</h2>
+              <p>RFC: ${escapeHTML(company.rfc || '—')} · Régimen: ${REGIMENES_FISCALES.find(r => r.clave === company.regimenFiscal)?.descripcion?.slice(0, 40) || company.regimenFiscal || '—'}</p>
+              <p>Lugar de expedición: ${escapeHTML(company.codigoPostal || '—')}</p>
             </div>
           </div>
           <div class="doc-meta">
             <h1 class="doc-type">FACTURA</h1>
             <table class="doc-meta-table">
-              <tr><td>Serie-Folio:</td><td class="mono">${inv.folio}</td></tr>
+              <tr><td>Serie-Folio:</td><td class="mono">${escapeHTML(inv.folio || '')}</td></tr>
               <tr><td>Fecha:</td><td>${formatDate(inv.date)}</td></tr>
               <tr><td>Método pago:</td><td>${inv.metodoPago || '—'}</td></tr>
               <tr><td>Forma pago:</td><td>${FORMAS_PAGO.find(f => f.clave === inv.formaPago)?.descripcion || inv.formaPago || '—'}</td></tr>
@@ -3603,9 +3613,9 @@ function buildCFDIPreview(inv, client, company) {
         <div class="doc-section-label">RECEPTOR</div>
         <div class="cfdi-receptor-grid">
           <div>
-            <strong>${client?.name || inv.clientName || '—'}</strong>
-            <p>RFC: ${inv.clientRfc || client?.rfc || '—'}</p>
-            <p>${client?.address || ''}</p>
+            <strong>${escapeHTML(client?.name || inv.clientName || '—')}</strong>
+            <p>RFC: ${escapeHTML(inv.clientRfc || client?.rfc || '—')}</p>
+            <p>${escapeHTML(client?.address || '')}</p>
           </div>
           <div>
             <p>Régimen fiscal: ${REGIMENES_FISCALES.find(r => r.clave === inv.clientRegimen)?.descripcion?.slice(0, 40) || inv.clientRegimen || '—'}</p>
@@ -3622,10 +3632,10 @@ function buildCFDIPreview(inv, client, company) {
           ${items.map(item => {
             const importe = ((item.qty || 0) * (item.unitPrice || 0) * (1 - (item.discount || 0) / 100));
             return `<tr>
-              <td class="mono text-xs">${item.claveProdServ || '—'}</td>
-              <td>${item.description || ''}</td>
+              <td class="mono text-xs">${escapeHTML(item.claveProdServ || '—')}</td>
+              <td>${escapeHTML(item.description || '')}</td>
               <td class="text-right">${item.qty}</td>
-              <td class="mono text-xs">${item.claveUnidad || '—'}</td>
+              <td class="mono text-xs">${escapeHTML(item.claveUnidad || '—')}</td>
               <td class="text-right">$${(item.unitPrice || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
               <td class="text-right">${item.discount || 0}%</td>
               <td class="text-right">$${importe.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
@@ -3650,12 +3660,12 @@ function buildCFDIPreview(inv, client, company) {
       <div class="cfdi-timbre">
         <div class="cfdi-timbre-content">
           <div class="cfdi-timbre-data">
-            <p><strong>UUID:</strong> <span class="mono">${inv.uuid}</span></p>
-            <p><strong>RFC emisor:</strong> <span class="mono">${company.rfc || '—'}</span></p>
-            <p><strong>RFC receptor:</strong> <span class="mono">${inv.clientRfc || '—'}</span></p>
+            <p><strong>UUID:</strong> <span class="mono">${escapeHTML(inv.uuid || '')}</span></p>
+            <p><strong>RFC emisor:</strong> <span class="mono">${escapeHTML(company.rfc || '—')}</span></p>
+            <p><strong>RFC receptor:</strong> <span class="mono">${escapeHTML(inv.clientRfc || '—')}</span></p>
             <p><strong>Fecha timbrado:</strong> ${inv.stampedAt ? new Date(inv.stampedAt).toLocaleString('es-MX') : '—'}</p>
-            <p><strong>No. Certificado:</strong> <span class="mono">${inv.noCertificado || '—'}</span></p>
-            <p class="cfdi-sello"><strong>Sello SAT:</strong> <span class="mono text-xs">${(inv.sello || '').slice(0, 64)}…</span></p>
+            <p><strong>No. Certificado:</strong> <span class="mono">${escapeHTML(inv.noCertificado || '—')}</span></p>
+            <p class="cfdi-sello"><strong>Sello SAT:</strong> <span class="mono text-xs">${escapeHTML((inv.sello || '').slice(0, 64))}…</span></p>
           </div>
           <div class="cfdi-qr" id="cfdi-qr-${inv.id}"></div>
         </div>
@@ -4304,7 +4314,7 @@ function drawReportChart(data) {
 // ── js/modules/settings.js ──────────────
 // import Store from '../store.js';
 // import I18n from '../i18n.js';
-// import { showToast } from '../utils.js';
+// import { showToast, escapeHTML } from '../utils.js';
 // import { REGIMENES_FISCALES, CURRENCIES } from '../catalogs.js';
 
 function renderSettings(container) {
@@ -4337,11 +4347,11 @@ function renderSettings(container) {
           <div class="form-row form-row--2">
             <div class="form-group">
               <label class="form-label required">${t('set_company_name')}</label>
-              <input class="form-control" id="s-name" value="${company.name || ''}">
+              <input class="form-control" id="s-name" value="${escapeHTML(company.name || '')}">
             </div>
             <div class="form-group">
               <label class="form-label required">${t('set_rfc')}</label>
-              <input class="form-control mono" id="s-rfc" value="${company.rfc || ''}" maxlength="13" placeholder="RFC000000XXX">
+              <input class="form-control mono" id="s-rfc" value="${escapeHTML(company.rfc || '')}" maxlength="13" placeholder="RFC000000XXX">
             </div>
           </div>
           <div class="form-row form-row--2">
@@ -4353,35 +4363,35 @@ function renderSettings(container) {
             </div>
             <div class="form-group">
               <label class="form-label required">${t('set_cp')}</label>
-              <input class="form-control" id="s-cp" value="${company.codigoPostal || ''}" maxlength="5" placeholder="06600">
+              <input class="form-control" id="s-cp" value="${escapeHTML(company.codigoPostal || '')}" maxlength="5" placeholder="06600">
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">Domicilio fiscal</label>
-            <input class="form-control" id="s-dom" value="${company.domicilioFiscal || ''}">
+            <input class="form-control" id="s-dom" value="${escapeHTML(company.domicilioFiscal || '')}">
           </div>
           <div class="form-row form-row--2">
             <div class="form-group">
               <label class="form-label">Correo electrónico</label>
-              <input class="form-control" id="s-email" type="email" value="${company.email || ''}">
+              <input class="form-control" id="s-email" type="email" value="${escapeHTML(company.email || '')}">
             </div>
             <div class="form-group">
               <label class="form-label">Teléfono</label>
-              <input class="form-control" id="s-tel" value="${company.telefono || ''}">
+              <input class="form-control" id="s-tel" value="${escapeHTML(company.telefono || '')}">
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">Sitio web</label>
-            <input class="form-control" id="s-web" value="${company.website || ''}">
+            <input class="form-control" id="s-web" value="${escapeHTML(company.website || '')}">
           </div>
           <div class="form-row form-row--2">
             <div class="form-group">
               <label class="form-label">${t('set_banco')}</label>
-              <input class="form-control" id="s-banco" value="${company.banco || ''}">
+              <input class="form-control" id="s-banco" value="${escapeHTML(company.banco || '')}">
             </div>
             <div class="form-group">
               <label class="form-label">${t('set_cuenta')}</label>
-              <input class="form-control mono" id="s-cuenta" value="${company.cuenta || ''}" maxlength="18">
+              <input class="form-control mono" id="s-cuenta" value="${escapeHTML(company.cuenta || '')}" maxlength="18">
             </div>
           </div>
         </div>
@@ -4394,7 +4404,7 @@ function renderSettings(container) {
           <div class="form-row form-row--3">
             <div class="form-group">
               <label class="form-label">${t('set_serie')}</label>
-              <input class="form-control mono" id="s-serie" value="${company.serie || 'A'}" maxlength="3">
+              <input class="form-control mono" id="s-serie" value="${escapeHTML(company.serie || 'A')}" maxlength="3">
             </div>
             <div class="form-group">
               <label class="form-label">${t('set_folio_cot')}</label>
