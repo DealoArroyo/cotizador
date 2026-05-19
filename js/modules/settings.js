@@ -17,19 +17,6 @@ export function renderSettings(container) {
     ? `<div class="alert alert--success" style="margin-bottom:16px"><i data-lucide="check-circle-2"></i> <span>EmailJS configurado — envío de correos activo.</span></div>`
     : `<div class="alert alert--info" style="margin-bottom:16px"><i data-lucide="info"></i> <span>Configura EmailJS para enviar cotizaciones por correo. Gratis hasta 200 correos/mes en <strong>emailjs.com</strong></span></div>`;
 
-  // Supabase status — compute before template literal to avoid IIFE-in-backtick issues
-  const _sbCfg = SupabaseClient.getConfig();
-  const _sbUser = Auth.getCurrentUser();
-  const _sbConfigured = SupabaseClient.isConfigured();
-  const _sbStatusBadge = _sbConfigured && _sbUser
-    ? `<div class="alert alert--success" style="margin-bottom:16px"><i data-lucide="check-circle-2"></i> <span>Conectado como <strong>${_sbUser.email}</strong></span></div>`
-    : _sbConfigured
-    ? `<div class="alert alert--warning" style="margin-bottom:16px"><i data-lucide="alert-circle"></i> <span>Supabase configurado — sin sesión activa.</span></div>`
-    : `<div class="alert alert--info" style="margin-bottom:16px"><i data-lucide="info"></i> <span>Configura Supabase para sincronizar tus datos entre dispositivos.</span></div>`;
-  const _sbSyncBtn = _sbConfigured && _sbUser
-    ? `<button class="btn btn--ghost btn--sm" id="sb-sync-now"><i data-lucide="refresh-cw"></i> Sincronizar ahora</button>`
-    : '';
-
   container.innerHTML = `
     <div class="page-header">
       <h1 class="page-title">${t('set_title')}</h1>
@@ -236,28 +223,6 @@ export function renderSettings(container) {
               <textarea class="form-control" style="font-size:11px;font-family:monospace;height:160px" readonly id="ejs-template-html"></textarea>
             </div>
           </details>
-        </div>
-      </div>
-
-      <!-- Supabase Cloud Sync -->
-      <div class="card" id="supabase-card">
-        <div class="card__header"><span class="card__title"><i data-lucide="cloud"></i> Sincronización en la nube (Supabase)</span></div>
-        <div class="card__body">
-          ${_sbStatusBadge}
-          <div class="form-row form-row--2">
-            <div class="form-group">
-              <label class="form-label">Project URL</label>
-              <input class="form-control" id="sb-url" type="url" placeholder="https://xxxx.supabase.co" value="${_sbCfg.url}">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Anon / Public key</label>
-              <input class="form-control" id="sb-key" type="password" placeholder="eyJ..." value="${_sbCfg.anonKey}">
-            </div>
-          </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn btn--secondary btn--sm" id="sb-save-cfg"><i data-lucide="save"></i> Guardar configuración</button>
-            ${_sbSyncBtn}
-          </div>
         </div>
       </div>
 
@@ -566,29 +531,4 @@ export function renderSettings(container) {
     showToast('Configuración de EmailJS guardada ✓');
   });
 
-  // Supabase config save
-  container.querySelector('#sb-save-cfg')?.addEventListener('click', () => {
-    const url = container.querySelector('#sb-url')?.value.trim();
-    const key = container.querySelector('#sb-key')?.value.trim();
-    if (!url || !key) { showToast('Ingresa URL y anon key', 'error'); return; }
-    SupabaseClient.saveConfig(url, key);
-    showToast('Configuración de Supabase guardada. Recargando...');
-    setTimeout(() => location.reload(), 1200);
-  });
-
-  // Sync now
-  container.querySelector('#sb-sync-now')?.addEventListener('click', async () => {
-    const client = SupabaseClient.get();
-    const user = Auth.getCurrentUser();
-    if (!client || !user) { showToast('No hay sesión activa', 'error'); return; }
-    const btn = container.querySelector('#sb-sync-now');
-    btn.disabled = true;
-    btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Sincronizando...';
-    if (window.lucide) lucide.createIcons({ nodes: [btn] });
-    await Store.pushToSupabase(client, user.id);
-    btn.disabled = false;
-    btn.innerHTML = '<i data-lucide="refresh-cw"></i> Sincronizar ahora';
-    if (window.lucide) lucide.createIcons({ nodes: [btn] });
-    showToast('Datos sincronizados con Supabase');
-  });
 }
