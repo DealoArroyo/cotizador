@@ -7,18 +7,24 @@ import { renderKanban } from './kanban.js';
 let quotsFilter = '';
 let quotsSearch = '';
 let _quotPollTimer = null;
+let _syncInProgress = false;
 
 async function _syncAndRefresh(container, params) {
-  if (!window._supSync) return;
+  if (!window._supSync || _syncInProgress) return;
+  _syncInProgress = true;
   const btn = container.querySelector('#sync-quot');
   if (btn) {
     btn.disabled = true;
     btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Actualizando...';
     if (window.lucide) lucide.createIcons({ nodes: [btn] });
   }
-  const { client, userId } = window._supSync;
-  await Store.syncFromSupabase(client, userId);
-  renderQuotations(container, params);
+  try {
+    const { client, userId } = window._supSync;
+    await Store.syncFromSupabase(client, userId);
+    renderQuotations(container, params);
+  } finally {
+    _syncInProgress = false;
+  }
 }
 
 export function renderQuotations(container, params = {}) {
