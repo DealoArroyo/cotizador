@@ -29,3 +29,17 @@ def sb_patch(table, params, body):
     })
     with urllib.request.urlopen(req, timeout=10) as r:
         return r.status
+
+
+def sb_upsert(table, body):
+    url = os.environ['SUPABASE_URL'].rstrip('/') + '/rest/v1/' + table
+    key = os.environ['SUPABASE_SERVICE_ROLE_KEY']
+    data = json.dumps(body).encode()
+    req = urllib.request.Request(url, data=data, method='POST', headers={
+        'apikey': key,
+        'Authorization': f'Bearer {key}',
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates',
+    })
+    with urllib.request.urlopen(req, timeout=10) as r:
+        return r.status
