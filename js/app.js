@@ -206,10 +206,11 @@ async function bootWithSession(session) {
       .from('subscriptions')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
     window._plan = subData?.plan || 'free';
     window._subscription = subData || null;
-  } catch (_) {
+  } catch (err) {
+    console.error('[billing] failed to load subscription:', err);
     window._plan = 'free';
     window._subscription = null;
   }

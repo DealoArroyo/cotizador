@@ -5162,7 +5162,27 @@ async function bootWithSession(session) {
     if (main) main.innerHTML = `<div class="sync-loading"><i data-lucide="wifi-off"></i><span>Sin conexión — usando datos locales.</span></div>`;
   }
 
+  try {
+    const { data: subData } = await client
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+    window._plan = subData?.plan || 'free';
+    window._subscription = subData || null;
+  } catch (err) {
+    console.error('[billing] failed to load subscription:', err);
+    window._plan = 'free';
+    window._subscription = null;
+  }
+
   Store.seedDemo();
+
+  if (new URLSearchParams(window.location.search).get('billing') === 'success') {
+    history.replaceState(null, '', '/');
+    setTimeout(() => showToast('¡Bienvenido a Pro! Tu suscripción está activa.', 'success'), 500);
+  }
+
   render();
 
   // Evaluate reminders after boot
