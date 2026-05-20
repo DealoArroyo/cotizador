@@ -1,5 +1,10 @@
 {
   "buildCommand": "python build.py",
+  "functions": {
+    "api/portal.py":  { "includeFiles": "api/_lib/**" },
+    "api/viewed.py":  { "includeFiles": "api/_lib/**" },
+    "api/action.py":  { "includeFiles": "api/_lib/**" }
+  },
   "rewrites": [
     { "source": "/q/:token",            "destination": "/api/portal?token=:token" },
     { "source": "/api/q/:token/viewed", "destination": "/api/viewed?token=:token" },

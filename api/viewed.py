@@ -3,7 +3,7 @@ import sys
 import urllib.parse
 from datetime import datetime, timezone
 
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _lib.base import SecureHandler
 from _lib.ratelimit import check_rate_limit
 from _lib.supabase import sb_get, sb_patch

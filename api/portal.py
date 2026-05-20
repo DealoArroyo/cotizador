@@ -2,7 +2,7 @@ import os
 import sys
 import urllib.parse
 
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _lib.base import SecureHandler
 from _lib.render import render_error, render_portal
 from _lib.ratelimit import check_rate_limit
