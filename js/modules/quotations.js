@@ -27,10 +27,70 @@ async function _syncAndRefresh(container, params) {
   }
 }
 
+function _hasQuota() {
+  if ((window._plan || 'free') === 'pro') return true;
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  const count = Store.getQuotations()
+    .filter(q => (q.createdAt || q.date || '').startsWith(thisMonth))
+    .length;
+  return count < 3;
+}
+
+function _showUpgradeModal() {
+  document.getElementById('upgrade-modal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'upgrade-modal';
+  modal.className = 'modal-backdrop';
+  modal.innerHTML = `
+    <div class="modal" style="max-width:440px">
+      <div class="modal__header">
+        <h3 class="modal__title"><i data-lucide="zap"></i> Límite del plan gratuito</h3>
+        <button class="modal__close" id="close-upgrade-modal"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal__body">
+        <p class="text-sm">Has creado <strong>3 cotizaciones</strong> este mes. Actualiza a <strong>Pro</strong> para cotizaciones ilimitadas.</p>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg-secondary);border-radius:8px">
+            <span>Mensual</span><strong>$249 MXN/mes</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg-secondary);border-radius:8px">
+            <span>Anual <span class="badge badge--success">Ahorras $598</span></span><strong>$2,390 MXN/año</strong>
+          </div>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--ghost" id="cancel-upgrade-modal">Ahora no</button>
+        <button class="btn btn--secondary" id="upgrade-modal-yearly">Anual $2,390/año</button>
+        <button class="btn btn--primary" id="upgrade-modal-monthly"><i data-lucide="zap"></i> Mensual $249/mes</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  if (window.lucide) lucide.createIcons({ nodes: [modal] });
+
+  const close = () => modal.remove();
+  modal.querySelector('#close-upgrade-modal').addEventListener('click', close);
+  modal.querySelector('#cancel-upgrade-modal').addEventListener('click', close);
+  modal.querySelector('#upgrade-modal-monthly').addEventListener('click', () => {
+    modal.remove();
+    if (typeof _startBillingCheckout === 'function') _startBillingCheckout('monthly');
+  });
+  modal.querySelector('#upgrade-modal-yearly').addEventListener('click', () => {
+    modal.remove();
+    if (typeof _startBillingCheckout === 'function') _startBillingCheckout('yearly');
+  });
+}
+
 export function renderQuotations(container, params = {}) {
   if (_quotPollTimer) { clearInterval(_quotPollTimer); _quotPollTimer = null; }
   const t = I18n.t.bind(I18n);
-  if (params.action === 'new' || params.action === 'edit') return renderQuotationForm(container, params.id, params);
+  if (params.action === 'new' || params.action === 'edit') {
+    if (params.action === 'new' && !_hasQuota()) {
+      renderQuotations(container, {});
+      _showUpgradeModal();
+      return;
+    }
+    return renderQuotationForm(container, params.id, params);
+  }
   if (params.action === 'view') return renderQuotationView(container, params.id);
 
   const clients = Store.getClients();
