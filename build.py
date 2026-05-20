@@ -20,6 +20,7 @@ FILES = [
     'js/modules/payments.js',
     'js/modules/templates.js',
     'js/modules/reports.js',
+    'js/modules/billing.js',
     'js/modules/settings.js',
     'js/modules/kanban.js',
     'js/reminders.js',

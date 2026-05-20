@@ -2,9 +2,11 @@
   "buildCommand": "python build.py",
   "outputDirectory": ".",
   "functions": {
-    "api/portal.py":  { "includeFiles": "api/_lib/**" },
-    "api/viewed.py":  { "includeFiles": "api/_lib/**" },
-    "api/action.py":  { "includeFiles": "api/_lib/**" }
+    "api/portal.py":          { "includeFiles": "api/_lib/**" },
+    "api/viewed.py":          { "includeFiles": "api/_lib/**" },
+    "api/action.py":          { "includeFiles": "api/_lib/**" },
+    "api/billing.py":         { "includeFiles": "api/_lib/**" },
+    "api/stripe_webhook.py":  { "includeFiles": "api/_lib/**" }
   },
   "rewrites": [
     { "source": "/q/:token",            "destination": "/api/portal?token=:token" },
