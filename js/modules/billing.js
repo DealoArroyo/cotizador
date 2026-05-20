@@ -70,7 +70,8 @@ async function _startBillingCheckout(period) {
       showToast('Error al iniciar el pago', 'error');
       if (btn) btn.disabled = false;
     }
-  } catch (_) {
+  } catch (err) {
+    console.error('[billing] checkout error:', err);
     showToast('Error de conexión', 'error');
     if (btn) btn.disabled = false;
   }
@@ -97,7 +98,8 @@ async function _openBillingPortal() {
       showToast('Error al abrir el portal', 'error');
       if (btn) btn.disabled = false;
     }
-  } catch (_) {
+  } catch (err) {
+    console.error('[billing] portal error:', err);
     showToast('Error de conexión', 'error');
     if (btn) btn.disabled = false;
   }
