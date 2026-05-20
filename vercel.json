@@ -1,0 +1,8 @@
+{
+  "buildCommand": "python build.py",
+  "rewrites": [
+    { "source": "/q/:token",            "destination": "/api/portal?token=:token" },
+    { "source": "/api/q/:token/viewed", "destination": "/api/viewed?token=:token" },
+    { "source": "/api/q/:token/action", "destination": "/api/action?token=:token" }
+  ]
+}
