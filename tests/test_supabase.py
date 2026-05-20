@@ -1,10 +1,6 @@
 import unittest
 from unittest.mock import patch, MagicMock
 import os
-import sys
-
-# Ensure _lib is in the path before importing
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'api'))
 
 class TestSbGet(unittest.TestCase):
     @patch('_lib.supabase.urllib.request.urlopen')
