@@ -1,5 +1,6 @@
 {
   "buildCommand": "python build.py",
+  "outputDirectory": ".",
   "functions": {
     "api/portal.py":  { "includeFiles": "api/_lib/**" },
     "api/viewed.py":  { "includeFiles": "api/_lib/**" },
