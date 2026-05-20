@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _lib.base import SecureHandler
+from _lib.ratelimit import check_rate_limit
 from _lib.supabase import sb_get, sb_upsert
 from _lib.stripe import stripe_request
 
@@ -46,6 +47,10 @@ def _get_or_create_customer(user_id, email):
 
 class handler(SecureHandler):
     def do_POST(self):
+        ip = self.client_address[0]
+        if not check_rate_limit(ip):
+            return self._json(429, {'error': 'Too many requests'})
+
         auth = self.headers.get('Authorization', '')
         if not auth.startswith('Bearer '):
             return self._json(401, {'error': 'Unauthorized'})
@@ -57,6 +62,8 @@ class handler(SecureHandler):
         query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         action = (query.get('action') or [None])[0]
         period = (query.get('period') or ['monthly'])[0]
+        if period not in ('monthly', 'yearly'):
+            period = 'monthly'
 
         try:
             if action == 'checkout':
