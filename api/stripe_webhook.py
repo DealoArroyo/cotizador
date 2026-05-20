@@ -3,6 +3,7 @@ import hmac
 import json
 import os
 import sys
+import time
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -11,15 +12,19 @@ from _lib.supabase import sb_get, sb_upsert
 from _lib.stripe import stripe_request
 
 
+_TOLERANCE = 300  # seconds
+
 def verify_signature(raw_body: bytes, sig_header: str, secret: str) -> bool:
     try:
         parts = dict(item.split('=', 1) for item in sig_header.split(','))
         timestamp = parts['t']
         v1 = parts['v1']
+        if abs(time.time() - int(timestamp)) > _TOLERANCE:
+            return False
         signed = f'{timestamp}.'.encode() + raw_body
         mac = hmac.new(secret.encode(), signed, hashlib.sha256).hexdigest()
         return hmac.compare_digest(mac, v1)
-    except Exception:
+    except (KeyError, ValueError, TypeError):
         return False
 
 
@@ -51,6 +56,7 @@ def handle_event(event_type: str, event_data: dict):
             return
         rows = sb_get('subscriptions', {'stripe_customer_id': f'eq.{customer_id}', 'select': 'user_id'})
         if not rows:
+            print(f'[webhook] no subscription found for customer {customer_id}', flush=True)
             return
         user_id = rows[0]['user_id']
         sub = stripe_request('GET', f'subscriptions/{subscription_id}')
@@ -69,6 +75,7 @@ def handle_event(event_type: str, event_data: dict):
         customer_id = obj.get('customer')
         rows = sb_get('subscriptions', {'stripe_customer_id': f'eq.{customer_id}', 'select': 'user_id'})
         if not rows:
+            print(f'[webhook] no subscription found for customer {customer_id}', flush=True)
             return
         user_id = rows[0]['user_id']
         sb_upsert('subscriptions', {

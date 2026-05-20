@@ -97,10 +97,16 @@ class TestHandleEvent(unittest.TestCase):
         call_data = mock_upsert.call_args[0][1]
         self.assertEqual(call_data['plan'], 'pro')
 
-    def test_unknown_event_does_nothing(self):
+    @patch('stripe_webhook.sb_upsert')
+    @patch('stripe_webhook.sb_get')
+    @patch('stripe_webhook.stripe_request')
+    def test_unknown_event_does_nothing(self, mock_stripe, mock_get, mock_upsert):
         with patch.dict(os.environ, ENV):
             import stripe_webhook
             stripe_webhook.handle_event('unknown.event', {'object': {}})
+        mock_upsert.assert_not_called()
+        mock_get.assert_not_called()
+        mock_stripe.assert_not_called()
 
 
 if __name__ == '__main__':
