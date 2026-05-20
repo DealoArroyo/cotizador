@@ -30,9 +30,11 @@ async function _syncAndRefresh(container, params) {
 function _hasQuota() {
   if ((window._plan || 'free') === 'pro') return true;
   const thisMonth = new Date().toISOString().slice(0, 7);
-  const count = Store.getQuotations()
-    .filter(q => (q.createdAt || q.date || '').startsWith(thisMonth))
-    .length;
+  const count = Store.getQuotations().filter(q => {
+    try {
+      return new Date(q.createdAt || q.date || '').toISOString().slice(0, 7) === thisMonth;
+    } catch (_) { return false; }
+  }).length;
   return count < 3;
 }
 
