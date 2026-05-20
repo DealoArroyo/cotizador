@@ -1,5 +1,4 @@
 import os
-import re
 import sys
 import urllib.parse
 from datetime import datetime, timezone
@@ -8,8 +7,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from _lib.base import SecureHandler
 from _lib.ratelimit import check_rate_limit
 from _lib.supabase import sb_get, sb_patch
-
-TOKEN_RE = re.compile(r'^[a-f0-9]{32}$')
+from _lib.validate import TOKEN_RE
 
 
 class handler(SecureHandler):
@@ -50,4 +48,4 @@ class handler(SecureHandler):
             self._json(200, {'ok': True})
         except Exception as e:
             print(f'[viewed error] {e}', flush=True)
-            self._json(500, {'error': str(e)})
+            self._json(500, {'error': 'Internal server error'})

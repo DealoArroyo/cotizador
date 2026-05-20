@@ -1,5 +1,4 @@
 import os
-import re
 import sys
 import urllib.parse
 
@@ -8,8 +7,7 @@ from _lib.base import SecureHandler
 from _lib.render import render_error, render_portal
 from _lib.ratelimit import check_rate_limit
 from _lib.supabase import sb_get
-
-TOKEN_RE = re.compile(r'^[a-f0-9]{32}$')
+from _lib.validate import TOKEN_RE
 
 
 class handler(SecureHandler):
