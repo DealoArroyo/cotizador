@@ -275,9 +275,15 @@ export function renderSettings(container) {
       <div class="settings-save-bar">
         <button class="btn btn--primary btn--lg" id="save-settings"><i data-lucide="save"></i> ${t('set_save')}</button>
       </div>
+      <div id="billing-card-slot"></div>
     </div>`;
 
   if (window.lucide) lucide.createIcons({ nodes: [container] });
+
+  if (typeof renderBillingCard === 'function') {
+    const slot = container.querySelector('#billing-card-slot');
+    if (slot) renderBillingCard(slot);
+  }
 
   // Save reminders settings
   container.querySelector('#save-reminders')?.addEventListener('click', () => {
